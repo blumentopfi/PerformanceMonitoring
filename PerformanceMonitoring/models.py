@@ -59,7 +59,7 @@ class Job(models.Model):
     stop_date = models.DateTimeField()
     n_mpi_ranks = models.SmallIntegerField(null=False)
     n_omp_threads = models.SmallIntegerField(null=False)
-    simulated_time = models.DurationField()
+    simulated_time = models.CharField(max_length=20)
     experiment = models.ForeignKey(Experiment,on_delete=models.CASCADE, null=False)
     # Methods
     def get_absolute_url(self):
@@ -102,7 +102,6 @@ class timer(models.Model):
     # Fields
     timer_name = models.CharField(max_length=32)
     model = models.ForeignKey(ClimateModel,on_delete=models.CASCADE,null = False)
-
     class Meta:
         unique_together = (('model', 'timer_name'),)
     # Methods
@@ -143,5 +142,5 @@ class timing(models.Model):
         """
         String for representing the MyModelName object (in Admin site etc.)
         """
-        return self.timer_name
+        return str(self.i_mpi_rank)
 
