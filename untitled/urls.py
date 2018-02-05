@@ -12,4 +12,7 @@ urlpatterns = [
     path('', RedirectView.as_view(url='/monitor/'))
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
-ProcessHDFToDatabase(h5py.File("C:/icon-timer-0000.h5", mode='r'))
+
+
+
+#ProcessHDFToDatabase(h5py.File("C:/icon-timer-0000.h5", mode='r'))

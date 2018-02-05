@@ -101,6 +101,7 @@ def ProcessHDFToDatabase(hdf5File):
         else:
             print("Run length " + simulated_time)
 
+        return
         submit_time = h5_report_attrs_grp.attrs['submit date'].decode('UTF-8')
         if not isinstance(submit_time, str):
             _raise_inv_format('\'submit_time\' is not of type string')

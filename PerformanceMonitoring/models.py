@@ -29,7 +29,7 @@ class Experiment(models.Model):
 
     # Fields
     experiment_name = models.CharField(max_length=50, primary_key=True)
-    model = models.ForeignKey(ClimateModel,on_delete=models.CASCADE, null=False)
+    model = models.ForeignKey(ClimateModel,on_delete=models.CASCADE, null=False,related_name='experiments')
     # Methods
     def get_absolute_url(self):
         """
@@ -60,7 +60,7 @@ class Job(models.Model):
     n_mpi_ranks = models.SmallIntegerField(null=False)
     n_omp_threads = models.SmallIntegerField(null=False)
     simulated_time = models.CharField(max_length=20)
-    experiment = models.ForeignKey(Experiment,on_delete=models.CASCADE, null=False)
+    experiment = models.ForeignKey(Experiment,on_delete=models.CASCADE, null=False,related_name='jobs')
     # Methods
     def get_absolute_url(self):
         """
@@ -81,7 +81,7 @@ class job_rank(models.Model):
     # Fields
     i_mpi_rank = models.SmallIntegerField()
     hostname= models.CharField(max_length=32)
-    job = models.ForeignKey(Job,on_delete=models.CASCADE,null = False)
+    job = models.ForeignKey(Job,on_delete=models.CASCADE,null = False,related_name='job_ranks')
     # Methods
     def get_absolute_url(self):
         """
@@ -101,7 +101,7 @@ class timer(models.Model):
 
     # Fields
     timer_name = models.CharField(max_length=32)
-    model = models.ForeignKey(ClimateModel,on_delete=models.CASCADE,null = False)
+    model = models.ForeignKey(ClimateModel,on_delete=models.CASCADE,null = False,related_name='timers')
     class Meta:
         unique_together = (('model', 'timer_name'),)
     # Methods
@@ -126,8 +126,8 @@ class timing(models.Model):
     i_omp_thread = models.SmallIntegerField(null=False)
     cnum = models.IntegerField()
     tsum = models.FloatField()
-    job = models.ForeignKey(Job,on_delete=models.CASCADE,null=False)
-    timer = models.ForeignKey(timer,on_delete=models.CASCADE,null=False)
+    job = models.ForeignKey(Job,on_delete=models.CASCADE,null=False,related_name='timings')
+    timer = models.ForeignKey(timer,on_delete=models.CASCADE,null=False,related_name='timings')
 
     class Meta:
         unique_together = (('job', 'timer','i_mpi_rank','i_omp_thread'),)
