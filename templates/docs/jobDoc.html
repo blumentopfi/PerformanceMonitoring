@@ -1,0 +1,95 @@
+{% extends "base_generic.html" %}
+{% block content %}
+    <h><strong>Job</strong></h>
+     <p>To get a json representation of a job call: /monitor/api/jobs/job_name with the corresponding job name</p>
+    <div class="codebox">
+    <code>
+         {</br>
+        "id": 3,</br>
+        "job_ranks": "http://127.0.0.1:8000/monitor/api/jobs/3/jobranks",</br>
+        "timings": "http://127.0.0.1:8000/monitor/api/jobs/3/timings",</br>
+        "job_name": "7666613",</br>
+        "user_name": "Monika Esch (m214002)",</br>
+        "repository": "git@git.mpimet.mpg.de:icon-aes.git",</br>
+        "revision": "ac96c0a95984913aff9ff99895ab24ed097013a4",</br>
+        "branch": "icon-aes-dev",</br>
+        "submitted": "2017-07-31T10:05:25",</br>
+        "start_date": "2017-07-31T10:05:32",</br>
+        "stop_date": "2017-07-31T10:05:47",</br>
+        "n_mpi_ranks": 120,</br>
+        "n_omp_threads": 4,</br>
+        "simulated_time": "",</br>
+        "experiment": "mbe1093"</br>
+    }</br>
+    </code>
+    </div>
+    <table style="width:100%">
+    <tr>
+    <th>Attribute</th>
+    <th>Explanation</th>
+  </tr>
+  <tr>
+    <td>id</td>
+    <td>Unique ID</td>
+  </tr>
+  <tr>
+    <td>job_ranks</td>
+    <td>The link to the list of the job_ranks that belong to the job</td>
+  </tr>
+      <tr>
+    <td>job_name</td>
+    <td>The name of the job </td>
+  </tr>
+          <tr>
+    <td>user_name</td>
+    <td>The username of the user who submitted the job</td>
+  </tr>
+          <tr>
+    <td>repository</td>
+    <td>the repository</td>
+  </tr>
+          <tr>
+    <td>revision</td>
+    <td>The revision of the git repo with which the job was started</td>
+  </tr>
+          <tr>
+    <td>branch</td>
+    <td>The branch of the git repo with which the job was started</td>
+  </tr>
+          <tr>
+    <td>submitted</td>
+    <td>The date when the job was submitted</td>
+  </tr>
+               <tr>
+    <td>start_date</td>
+    <td>The date when the job was started</td>
+  </tr>
+               <tr>
+    <td>stop_date</td>
+    <td>The date when the job was finished</td>
+  </tr>
+               <tr>
+    <td>submitted</td>
+    <td>The date when the job was submitted</td>
+  </tr>
+          <tr>
+    <td>n_mpi_ranks</td>
+    <td>The number of mpi ranks this job had</td>
+  </tr>
+    <tr>
+    <td>n_omp_threads</td>
+    <td>The number of omp threads this job had</td>
+  </tr>
+    <tr>
+    <td>simulated_time</td>
+    <td>The time this job simulated</td>
+  </tr>
+        <tr>
+    <td>experiment</td>
+    <td>The experiment this job belongs to</td>
+  </tr>
+</table>
+    <p style="color:red">  <strong>It is also possible to get a list of all available experiments: <a href="/monitor/api/jobs">/monitor/api/jobs</a>  </strong></p>
+
+{% endblock %}
+

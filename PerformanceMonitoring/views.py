@@ -1,9 +1,12 @@
 from rest_framework import generics, permissions
-
-
+from django.shortcuts import render
+from django.views import generic as g
 from PerformanceMonitoring.serializiers import *
 from .models import *
-
+from django.http import Http404
+from PerformanceMonitoring import utils as u
+import json
+from datetime import datetime
 class ModelList(generics.ListCreateAPIView):
     model = ClimateModel
     queryset = ClimateModel.objects.all()
@@ -136,3 +139,176 @@ class TimerTimingsList(generics.ListAPIView):
     def get_queryset(self):
         queryset = super(TimerTimingsList, self).get_queryset()
         return queryset.filter(timer__pk=self.kwargs.get('pk'))
+
+
+def index(request):
+    """
+    View function for home page of site.
+    """
+    # Generate counts of some of the main objects
+    num_models = ClimateModel.objects.all().count()
+    num_experiments = Experiment.objects.all().count()
+    num_jobs = Job.objects.all().count()
+    num_timings = timing.objects.all().count()
+    # Render the HTML template index.html with the data in the context variable
+    return render(
+        request,
+        'index.html',
+        context={'num_models': num_models, 'num_experiments': num_experiments,
+                 'num_jobs': num_jobs, 'num_timings': num_timings},
+    )
+
+class ModelListView(g.ListView):
+    model = ClimateModel
+    context_object_name = 'model_list'
+    template_name = 'model_list.html'
+
+
+class ModelDetailView(g.DetailView):
+    model = ClimateModel
+    context_object_name = 'model_detail'
+    template_name = 'model_detail.html'
+
+def experimentdetailview(request, pk):
+    try:
+        experiment = Experiment.objects.get(pk=pk)
+    except Experiment.DoesNotExist:
+        raise Http404("Job does not exist")
+
+    jobs = Job.objects.all().filter(experiment=pk)
+    times = []
+    for job in jobs :
+        runtime = job.stop_date - job.start_date
+        times.append(runtime.total_seconds()/60)
+
+    print(times)
+    print(jobs)
+    job_names = json.dumps([j.job_name for j in jobs])
+    return render(
+        request,
+        'experiment_detail.html',
+        context={'experiment_detail': experiment, 'times': times, 'job_names': job_names,'mean':sum(times)/len(times)}
+    )
+
+
+class ExperimentDetailView(g.DetailView):
+    model = Experiment
+    context_object_name = 'experiment_detail'
+    template_name = 'experiment_detail.html'
+
+#class JobDetailView(g.DetailView):
+#    model = Job
+    #context_object_name = 'job_detail'
+#    template_name = 'job_detail.html'
+
+def jobdetailview(request, pk):
+    try:
+        job_id = Job.objects.get(pk=pk)
+    except Job.DoesNotExist:
+        raise Http404("Job does not exist")
+    timingset = timing.objects.all().filter(job=job_id)
+    timer_tuple_list = []
+    timer_tuple_list = u.getDataFromTiming(timingset)
+    timer_names = [i[0] for i in timer_tuple_list]
+    avgData = [i[3] for i in timer_tuple_list]
+    minData = [i[2] for i in timer_tuple_list]
+    maxData = [i[1] for i in timer_tuple_list]
+    json_timer_names = json.dumps(timer_names)
+    radialavgData =" { \"year\": 1910,\"data\": { "
+    radialmaxData ="[ { \"year\": 1910,\"data\": { "
+    radialminData =" { \"year\": 1910,\"data\": { "
+
+    for name,ma,mi,av in timer_tuple_list:
+        radialavgData = radialavgData + "\"" + name + "\" :" + str(av) + ","
+        radialminData = radialminData + "\"" + name + "\" :" + str(mi) + ","
+        radialmaxData = radialmaxData + "\"" + name + "\" :" + str(ma) + ","
+    #strip the last comma
+    radialavgData=radialavgData[:-1]
+    radialminData=radialminData[:-1]
+    radialmaxData=radialmaxData[:-1]
+    radialavgData+="}},"
+    radialmaxData += "}},"
+    radialminData += "}}]"
+
+
+    return render(
+        request,
+        'job_detail.html',
+        context={'job': job_id,'avg':avgData,'min':minData,'max':maxData,'timer_names':json_timer_names,'radialmaxData':radialmaxData,'radialavgData':radialavgData,'radialminData':radialminData}
+    )
+
+def jobcompareview(request, pk, pk2):
+    try:
+        job_id = Job.objects.get(pk=pk)
+        job2_id = Job.objects.get(pk=pk2)
+    except Job.DoesNotExist:
+        raise Http404("Job does not exist")
+    return render(
+        request,
+        'job_compare.html',
+        context={'job': job_id,'job2':job2_id}
+    )
+def jobcompareview2(request):
+    try:
+        job_id = Job.objects.get(pk=request.GET.get('job1',''))
+        job2_id = Job.objects.get(pk=request.GET.get('job2',''))
+    except Job.DoesNotExist:
+        raise Http404("Job does not exist")
+
+    timingset = timing.objects.all().filter(job=job_id)
+    timer_tuple_list = u.getDataFromTiming(timingset)
+    timer_names = [i[0] for i in timer_tuple_list]
+    avgData = [i[3] for i in timer_tuple_list]
+    minData = [i[2] for i in timer_tuple_list]
+    maxData = [i[1] for i in timer_tuple_list]
+    json_timer_names = json.dumps(timer_names)
+    radialavgData = " { \"year\": 1910,\"data\": { "
+    radialmaxData = "[ { \"year\": 1910,\"data\": { "
+    radialminData = " { \"year\": 1910,\"data\": { "
+
+    for name, ma, mi, av in timer_tuple_list:
+        radialavgData = radialavgData + "\"" + name + "\" :" + str(av) + ","
+        radialminData = radialminData + "\"" + name + "\" :" + str(mi) + ","
+        radialmaxData = radialmaxData + "\"" + name + "\" :" + str(ma) + ","
+    # strip the last comma
+    radialavgData = radialavgData[:-1]
+    radialminData = radialminData[:-1]
+    radialmaxData = radialmaxData[:-1]
+    radialavgData += "}},"
+    radialmaxData += "}},"
+    radialminData += "}}]"
+
+    timingset2 = timing.objects.all().filter(job=job2_id)
+    timer_tuple_list2 = u.getDataFromTiming(timingset2)
+    timer_names2 = [i[0] for i in timer_tuple_list2]
+    avgData2 = [i[3] for i in timer_tuple_list2]
+    minData2 = [i[2] for i in timer_tuple_list2]
+    maxData2 = [i[1] for i in timer_tuple_list2]
+    json_timer_names2 = json.dumps(timer_names2)
+    radialavgData2 = " { \"year\": 1910,\"data\": { "
+    radialmaxData2 = "[ { \"year\": 1910,\"data\": { "
+    radialminData2 = " { \"year\": 1910,\"data\": { "
+
+    for name, ma, mi, av in timer_tuple_list:
+        radialavgData2 = radialavgData2 + "\"" + name + "\" :" + str(av) + ","
+        radialminData2 = radialminData2 + "\"" + name + "\" :" + str(mi) + ","
+        radialmaxData2 = radialmaxData2 + "\"" + name + "\" :" + str(ma) + ","
+    # strip the last comma
+    radialavgData2 = radialavgData2[:-1]
+    radialminData2 = radialminData2[:-1]
+    radialmaxData2 = radialmaxData2[:-1]
+    radialavgData2 += "}},"
+    radialmaxData2 += "}},"
+    radialminData2 += "}}]"
+
+
+
+
+    return render(
+        request,
+        'job_compare.html',
+        context={'job': job_id,'job2':job2_id, \
+                'avg':avgData,'min':minData,'max':maxData,'timer_names':json_timer_names,'radialmaxData':radialmaxData,'radialavgData':radialavgData,'radialminData':radialminData \
+        ,'avg2':avgData2, 'min2': minData2, 'max2': maxData2, 'timer_names2': json_timer_names2, 'radialmaxData2': radialmaxData2, 'radialavgData2': radialavgData2, 'radialminData2': radialminData2
+                 }
+    )

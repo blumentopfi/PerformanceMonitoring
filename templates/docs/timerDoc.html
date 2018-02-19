@@ -1,0 +1,41 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <h><strong>Timer</strong></h>
+    <p>To get a json representation of a timer call: /monitor/api/timer/id with the corresponding timer id</p>
+    <div class="codebox">
+    <code>
+        {</br>
+        "id": 219,</br>
+        "timings": "http://127.0.0.1:8000/monitor/api/timer/219/timings",</br>
+        "timer_name": "total",</br>
+        "model": "icon"</br>
+    },</br>
+    </code>
+    </div>
+    <table style="width:100%">
+    <tr>
+    <th>Attribute</th>
+    <th>Explanation</th>
+  </tr>
+  <tr>
+    <td>id</td>
+    <td>The unique id of the timer</td>
+  </tr>
+  <tr>
+    <td>timings</td>
+    <td>The link to the list of the timings that belong to the timer</td>
+  </tr>
+      <tr>
+    <td>timer_name</td>
+    <td>The name of the timer</td>
+  </tr>
+      <tr>
+    <td>model</td>
+    <td>The model this timer belongs to</td>
+  </tr>
+</table>
+    <p style="color:red">  <strong>It is also possible to get a list of all available timers: <a href="/monitor/api/timer">/monitor/api/timer</a></strong></p>
+
+{% endblock %}
+

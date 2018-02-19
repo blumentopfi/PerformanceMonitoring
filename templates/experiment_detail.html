@@ -1,0 +1,94 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+
+
+  <h1>Experiment: {{ experiment_detail.experiment_name }}</h1>
+  <div style="margin-left:20px;margin-top:20px">
+    <h4>Jobs</h4>
+  <div class="list-group">
+    {% for job in experiment_detail.job_set.all %}
+
+         <a href="{{ job.get_absolute_url }}" class="list-group-item"> {{job.job_name}}</a>
+    {% endfor %}
+  </div>
+  </div>
+
+     <canvas id="myChart" width="400" height="200"></canvas>
+
+<script>
+var ourData = {{ times }}
+var ctx = document.getElementById("myChart").getContext('2d');
+var color = Chart.helpers.color;
+var myChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: {{ job_names|safe }},
+        datasets: [{
+            label:'Total time',
+            data: ourData,
+            backgroundColor:"#ff0000" ,
+            borderColor:"#ff0000" ,
+            borderWidth: 1,
+            fill:false,
+            showLine:false
+        },
+        {
+  data: Array.apply(null, new Array(50)).map(Number.prototype.valueOf,{{ mean }}),
+  fill: false,
+  radius: 0,
+            label:'Mean',
+            borderWidth: 2,
+            borderColor:"#000000",
+  backgroundColor: "#000000"
+}],
+    },
+    options: {
+        elements:{
+		point: {
+			radius: 5,
+			pointStyle: 'rect',
+			backgroundColor: '#ff0000',
+			borderColor: '#ff0000',
+			borderWidth: 1,
+			// Hover
+			hitRadius: 1,
+			hoverRadius: 4,
+			hoverBorderWidth: 1
+		}
+        },
+        scales: {
+            yAxes: [{
+                ticks: {
+                    min:0,
+                    max:2,
+                    beginAtZero:true
+                }
+            }],
+            xAxes: [{
+                ticks: {
+                    min:0,
+                    max:20,
+                    beginAtZero:true
+                }
+            }],
+        }
+    }
+});
+var canvas = document.getElementById("myChart");
+canvas.onclick = function (evt) {
+    activePoints = myChart.getElementAtEvent(evt);
+     var chartData = activePoints[0]['_chart'].config.data;
+    var idx = activePoints[0]['_index'];
+
+    var label = chartData.labels[idx];
+    console.log(label)
+    window.location.href = "/monitor/jobs/"+label;
+    //alert(myChart.datasets[0].points.indexOf(points[0]));
+};
+</script>
+    <h>{{ job_names }}</h>
+     <h>{{ times }}</h>
+{% endblock %}

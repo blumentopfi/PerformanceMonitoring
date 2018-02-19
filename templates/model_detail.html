@@ -1,0 +1,13 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+  <h1>Model: {{ model_detail.model_name }}</h1>
+  <div style="margin-left:20px;margin-top:20px">
+      <h4>Experiments:</h4>
+  <div class="list-group">
+    {% for experiment in model_detail.experiment_set.all %}
+        <a href="{{ experiment.get_absolute_url }}" class="list-group-item">{{experiment.experiment_name}}</a>
+    {% endfor %}
+  </div>
+  </div>
+{% endblock %}

@@ -7,6 +7,8 @@ from .views import JobList,JobDetail,JobJobRankList,JobTimingsList
 from .views import JobRankDetail,JobRankList
 from .views import TimerDetail,TimerList,TimerTimingsList
 from .views import TimingDetail,TimingList
+from django.views.generic import TemplateView
+
 model_urls = [
     url(r'^/(?P<pk>[0-9a-zA-Z_-]+)/experiments$', ModelExperimentList.as_view(), name='model_experiments'),
     url(r'^/(?P<pk>[0-9a-zA-Z_-]+)/timers$', ModelTimerList.as_view(), name='model_timers'),
@@ -37,11 +39,31 @@ timings_urls = [
     url(r'^/(?P<pk>[0-9a-zA-Z_-]+)$', TimingDetail.as_view(), name='timing-details'),
     url(r'^$', TimingList.as_view(), name='timing-list')
 ]
-urlpatterns = [
-    url(r'^models', include(model_urls)),
-    url(r'^experiments', include(experiment_urls)),
-    url(r'^jobs', include(job_urls)),
-    url(r'^jobranks', include(jobranks_urls)),
-    url(r'^timer', include(timer_urls)),
-    url(r'^timings', include(timings_urls)),
+api_urls = [
+    url(r'^/models', include(model_urls)),
+    url(r'^/experiments', include(experiment_urls)),
+    url(r'^/jobs', include(job_urls)),
+    url(r'^/jobranks', include(jobranks_urls)),
+    url(r'^/timer', include(timer_urls)),
+    url(r'^/timings', include(timings_urls)),
 ]
+
+doc_urls=[
+url(r'^timer',TemplateView.as_view(template_name='docs/timerDoc.html'), name='timer-doc-view'),
+url(r'^model', TemplateView.as_view(template_name='docs/modelDoc.html'), name='model-doc-view'),
+url(r'^experiment', TemplateView.as_view(template_name='docs/experimentDoc.html'), name='exp-doc-view'),
+url(r'^job', TemplateView.as_view(template_name='docs/jobDoc.html'), name='job-doc-view'),
+]
+
+urlpatterns = [
+    path(r'api',include(api_urls)),
+    path('', views.index, name='index'),
+    path('models/', views.ModelListView.as_view(), name='models'),
+    path('models/<pk>', views.ModelDetailView.as_view(), name='model-detail-view'),
+    path('experiments/<pk>', views.experimentdetailview, name='experiment-detail-view'),
+    path('jobs/<pk>', views.jobdetailview, name='job-detail-view'),
+    path('jobs/<pk>/<pk2>', views.jobcompareview, name='job-compare-view'),
+    path(r'compare/', views.jobcompareview2, name='job-compare-view2'),
+    path('docs/', TemplateView.as_view(template_name='docs.html'), name='doc-view'),
+    path('docs/', include(doc_urls)),
+    ]

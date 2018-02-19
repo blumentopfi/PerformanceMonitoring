@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.4/angular.min.js"></script>
+
+<body>
+<font size="7"> Welcome at the Performance Monitoring</font>
+<div ng-app="myApp" ng-controller="myCtrl">
+
+
+
+<select ng-model="selectedModel" ng-options="model as model.name for model in models" ng-change="selectedModelChanged()"></select>
+<select ng-model="selectedExperiment" ng-options="model as model.name for model in models" ng-change="selectedModelChanged()"></select>
+
+</div>
+
+<script>
+    function Model (name,experiment_url,timer_url) {
+    this.name = name;
+    this.experiment_url = experiment_url;
+    this.timer_url = timer_url ;
+}
+function Model (name,experiment_url,timer_url) {
+    this.name = name;
+    this.experiment_url = experiment_url;
+    this.timer_url = timer_url ;
+}
+var app = angular.module('myApp', []);
+app.controller('myCtrl', function($scope, $http) {
+    $http.get('http://127.0.0.1:8000/monitor/models').
+        then(function(response) {
+        $scope.models = [];
+            angular.forEach(response.data, function(object){
+                    //var model = new Model(object.model_name,object.experiments,object.timers) ;
+                    //console.log(model) ;
+                    $scope.models.push(new Model(object.model_name,object.experiments,object.timers)) ;
+         });
+        })
+     $scope.selectedModelChanged = function(){
+            cons
+  }
+  });
+</script>
+
+</body>
+</html>

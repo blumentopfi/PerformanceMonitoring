@@ -1,0 +1,15 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <h1>Model List</h1>
+
+    {% if model_list %}
+        <div class="list-group">
+    {% for model in model_list %}
+        <a href="{{ model.get_absolute_url }}" class="list-group-item">{{model.model_name}}</a>
+    {% endfor %}
+        </div>
+    {% else %}
+      <p>There are no models</p>
+    {% endif %}
+{% endblock %}

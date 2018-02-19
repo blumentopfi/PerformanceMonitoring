@@ -100,8 +100,6 @@ def ProcessHDFToDatabase(hdf5File):
             _raise_inv_format('\'simulated_time\' is not of type string')
         else:
             print("Run length " + simulated_time)
-
-        return
         submit_time = h5_report_attrs_grp.attrs['submit date'].decode('UTF-8')
         if not isinstance(submit_time, str):
             _raise_inv_format('\'submit_time\' is not of type string')
@@ -237,7 +235,7 @@ def ProcessHDFToDatabase(hdf5File):
                     #    zip([job_id] * nranks, range(0, nranks), hosts))
 
     #print(len([job_db_instance.id]*nranks))
-    for j,impi,hostname in zip([job_db_instance.id] * nranks, range(0, nranks), hosts):
+    for j,impi,hostname in zip([job_db_instance.job_name] * nranks, range(0, nranks), hosts):
         m.job_rank.objects.create(job=job_db_instance,i_mpi_rank=impi,hostname=hostname.decode('UTF-8'))
         print(impi)
 
@@ -256,3 +254,46 @@ def ProcessHDFToDatabase(hdf5File):
                     m.timing.objects.create(job=job_db_instance,timer=timer_db_instance,i_mpi_rank=i,i_omp_thread=j,cnum=int(timer_cnum[i, j, k]),tsum=float(timer_tsum[i, j, k]))
 
     return
+
+
+def getDataFromTiming(timingset):
+
+
+    timerset = m.timer.objects.all()
+    dataset = []
+    for timer_instance in timerset:
+        temptuple = (timer_instance,[])
+        for timing_instance in timingset:
+            if timing_instance.timer.id == timer_instance.id:
+                a,b = temptuple
+                b.append(timing_instance)
+        dataset.append(temptuple)
+    timer_tuple_list = []
+    for timer_instance,timing_list in dataset:
+        count_tsum = 0
+        list_ranks = []
+        max = 0
+        min = 1000000000000000
+        for timing_instance in timing_list:
+            count_tsum = count_tsum + timing_instance.tsum
+            if (timing_instance.tsum < min):
+                min = timing_instance.tsum
+            if (timing_instance.tsum > max):
+                max = timing_instance.tsum
+            #list_ranks.append(timing_instance.i_mpi_rank)
+        setList = list_ranks
+        if (len(setList) != len(list_ranks)):
+            print(timer_instance.timer_name)
+        avg= 0
+        if (count_tsum > 0 ):
+            avg = count_tsum/len(timing_list)
+        if (max != 0 and min != 1000000000000000 and avg != 0):
+            timer_tuple = (timer_instance.timer_name,max,min,avg)
+            timer_tuple_list.append(timer_tuple)
+
+
+
+
+    #get only the top 10
+    timer_tuple_list = sorted(timer_tuple_list, key=lambda t: t[3], reverse=True)[:10]
+    return timer_tuple_list

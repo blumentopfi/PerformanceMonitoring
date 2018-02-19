@@ -29,13 +29,13 @@ class Experiment(models.Model):
 
     # Fields
     experiment_name = models.CharField(max_length=50, primary_key=True)
-    model = models.ForeignKey(ClimateModel,on_delete=models.CASCADE, null=False,related_name='experiments')
+    model = models.ForeignKey(ClimateModel,on_delete=models.CASCADE, null=False)
     # Methods
     def get_absolute_url(self):
         """
         Returns the url to access a particular instance of MyModelName.
         """
-        return reverse('model-detail-view', args=[str(self.experiment_name)])
+        return reverse('experiment-detail-view', args=[str(self.experiment_name)])
 
     def __str__(self):
         """
@@ -49,7 +49,7 @@ class Job(models.Model):
     """
 
     # Fields
-    job_name = models.CharField(max_length=50, unique=True,null=False)
+    job_name = models.CharField(max_length=50, unique=True,null=False,primary_key=True)
     user_name = models.CharField(max_length=50)
     repository = models.CharField(max_length=256)
     revision = models.CharField(max_length=40)
@@ -60,13 +60,13 @@ class Job(models.Model):
     n_mpi_ranks = models.SmallIntegerField(null=False)
     n_omp_threads = models.SmallIntegerField(null=False)
     simulated_time = models.CharField(max_length=20)
-    experiment = models.ForeignKey(Experiment,on_delete=models.CASCADE, null=False,related_name='jobs')
+    experiment = models.ForeignKey(Experiment,on_delete=models.CASCADE, null=False)
     # Methods
     def get_absolute_url(self):
         """
         Returns the url to access a particular instance of MyModelName.
         """
-        return reverse('model-detail-view', args=[str(self.id)])
+        return reverse('job-detail-view', args=[str(self.job_name)])
 
     def __str__(self):
         """

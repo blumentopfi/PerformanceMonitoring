@@ -1,0 +1,15 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+<h1>Performance Monitoring Home</h1>
+
+<h2>Dynamic content</h2>
+
+  <p>The DB has the following record counts:</p>
+  <ul>
+    <li><strong>Models:</strong> {{ num_models }}</li>
+    <li><strong>Experiments:</strong> {{ num_experiments }}</li>
+    <li><strong>Jobs:</strong> {{ num_jobs }}</li>
+    <li><strong>Timings:</strong> {{ num_timings }}</li>
+  </ul>
+{% endblock %}

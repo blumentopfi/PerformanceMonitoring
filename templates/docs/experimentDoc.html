@@ -1,0 +1,35 @@
+{% extends "base_generic.html" %}
+{% block content %}
+    <h><strong>Experiment</strong></h>
+     <p>To get a json representation of a experiment call: /monitor/api/experiments/experiment_name with the corresponding experiment name</p>
+    <div class="codebox">
+    <code>
+        {</br>
+    "experiment_name": "mbe1093", </br>
+    "jobs": "http://127.0.0.1:8000/monitor/api/experiments/mbe1093/jobs", </br>
+    "model": "icon" </br>
+    } </br>
+    </code>
+    </div>
+    <table style="width:100%">
+    <tr>
+    <th>Attribute</th>
+    <th>Explanation</th>
+  </tr>
+  <tr>
+    <td>experiment_name</td>
+    <td>The name of the experiment</td>
+  </tr>
+  <tr>
+    <td>jobs</td>
+    <td>The link to the list of the jobs that belong to the experiment</td>
+  </tr>
+      <tr>
+    <td>model</td>
+    <td>The name of the model this experiment is part of</td>
+  </tr>
+</table>
+        <p style="color:red">  <strong>It is also possible to get a list of all available experiments: <a href="/monitor/api/experiments">/monitor/api/experiments</a></strong></p>
+
+{% endblock %}
+

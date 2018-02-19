@@ -1,0 +1,36 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <h><strong>Model</strong></h>
+    <p>To get a json representation of a model call: /monitor/api/models/model_name with the corresponding model name</p>
+    <div class="codebox">
+    <code>
+    {<br />
+        "model_name": "icon", <br />
+        "experiments": "http://127.0.0.1:8000/monitor/api/models/icon/experiments", <br />
+        "timers": "http://127.0.0.1:8000/monitor/api/models/icon/timers" <br />
+    }<br />
+    </code>
+    </div>
+    <table style="width:100%">
+    <tr>
+    <th>Attribute</th>
+    <th>Explanation</th>
+  </tr>
+  <tr>
+    <td>model_name</td>
+    <td>The name of the model</td>
+  </tr>
+  <tr>
+    <td>experiments</td>
+    <td>The link to the list of the experiments that belong to the model</td>
+  </tr>
+      <tr>
+    <td>timers</td>
+    <td>The link to the list of the timers that belong to the model</td>
+  </tr>
+</table>
+    <p style="color:red">  <strong>It is also possible to get a list of all available models: <a href="/monitor/api/models">/monitor/api/models</a></strong></p>
+
+{% endblock %}
+

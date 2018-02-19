@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  {% block title %}<title>Performance Monitoring</title>{% endblock %}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<style>
+
+#chart {
+  font-family: "Helvetica Neue", Helvetica, sans-serif;
+  font-size: 14px;
+}
+#chart path {
+  fill: none;
+}
+/* layers */
+#chart .layer-0 path {
+  fill: steelblue;
+}
+#chart .layer-1 path {
+  fill: white !important;
+  opacity: 0.5;
+  stroke-width: 1px;
+  stroke: #333;
+}
+/* Outer circle, tick-circles and spokes */
+#chart circle.outer {
+  stroke: #aaa;
+  stroke-dasharray: 4, 4;
+}
+#chart .tick-circles circle {
+  stroke: #ddd;
+  stroke-dasharray: 2, 2;
+}
+#chart .spokes line {
+  stroke: #666;
+  stroke-width: 0.2;
+}
+/* Axis */
+#chart .axis text {
+  font-size: 11px;
+}
+#chart .axis path {
+  stroke: #999;
+  shape-rendering: crispEdges;
+}
+#chart .axis line {
+  stroke: #999;
+  shape-rendering: crispEdges;
+}
+/* Labels */
+#chart .labels text {
+  fill: #333;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+
+body {
+    font-family: "Lato", sans-serif;
+}
+.dropdownbutton {
+    border: none;
+    background-color: #e7e7e7;
+    color: black;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+
+}
+.dropdownbutton:focus {outline:0;}
+.dropbtn {
+    background-color: #111;
+    color: white;
+    padding: 16px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+}
+.centerbtn{
+    background-color: #111;
+    color: white;
+    padding: 16px;
+    margin-right: 230px;
+    font-size: 16px;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+}
+
+.dropbtn:hover, .dropbtn:focus {
+    background-color: #808080;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #f1f1f1;
+    min-width: 160px;
+    width:100%;
+    overflow: auto;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+}
+
+.dropdown-content a {
+    color: black;
+    padding: 12px 16px;
+    text-decoration: none;
+
+    width:100% ;
+    display: block;
+}
+
+.dropdown a:hover {background-color: #ddd}
+
+.show {display:block;}
+
+.sidenav {
+    height: 100%;
+    width: 230px;
+    position: fixed;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    background-color: #111;
+    overflow-x: hidden;
+    padding-top: 20px;
+}
+
+.sidenav a {
+    padding: 6px 8px 6px 16px;
+    text-decoration: none;
+    font-size: 25px;
+    color: #818181;
+    display: block;
+}
+
+.sidenav a:hover {
+    color: #f1f1f1;
+}
+
+.main {
+    margin-left: 230px; /* Same as the width of the sidenav */
+    font-size: 20px; /* Increased text to enable scrolling */
+    padding: 0px 10px;
+}
+
+.codebox {
+        /* Below are styles for the codebox (not the code itself) */
+        border:1px solid black;
+        background-color:#EEEEFF;
+        width:100%;
+        overflow:auto;
+        padding:10px;
+    }
+    .codebox code {
+        /* Styles in here affect the text of the codebox */
+        font-size:0.9em;
+        /* You could also put all sorts of styling here, like different font, color, underline, etc. for the code. */
+    }
+
+@media screen and (max-height: 450px) {
+    .sidenav {padding-top: 15px;}
+    .sidenav a {font-size: 18px;}
+}
+</style>
+
+
+
+
+
+
+</head>
+
+<body>
+<div class="sidenav">
+  <a href="{% url 'index' %}">Home</a>
+   <a href="/monitor/models">Models</a>
+  <a href="/monitor/docs">Documentation</a>
+</div>
+<div class="main">
+ {% block content %}{% endblock %}
+</div>
+</body>
+</html>

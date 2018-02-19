@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'PerformanceMonitoring.apps.PerformancemonitoringConfig',
     'django_extensions',
     'rest_framework',
+    'chartjs',
 ]
 
 MIDDLEWARE = [

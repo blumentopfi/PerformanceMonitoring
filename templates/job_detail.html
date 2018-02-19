@@ -1,0 +1,166 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+<script src="/static/scripts/d3.v3.min.js"></script>
+<script src="/static/scripts/radialBarChart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+
+  <h1>Job: {{ job.job_name }}</h1>
+    <p><strong>User:</strong> {{ job.user_name }}</p>
+    <p><strong>Repository:</strong> {{ job.repository }}</p>
+    <p><strong>Revision:</strong> {{ job.revision }}</p>
+    <p><strong>Branch:</strong> {{ job.branch }}</p>
+    <p><strong>Submitted:</strong>{{ job.submitted }}</p>
+    <p><strong>Start Date:</strong>{{ job.start_date }}</p>
+    <p><strong>Stop Date:</strong> {{ job.stop_date }}</p>
+    <p><strong>MPI Ranks:</strong> {{ job.n_mpi_ranks }}</p>
+    <p><strong>OMP Threads:</strong> {{ job.n_omp_threads }}</p>
+    <p><strong>Simulated Time:</strong> {{ job.simulated_time }}</p>
+<div class="dropdown" style="display: inline-block">
+<button onclick="ToggleDropDown('myDropdown')" class="dropbtn">Choose chart type <i class="fa fa-caret-down"></i></button>
+  <div id="myDropdown" class="dropdown-content">
+        <button onclick="changeBar('horizontalBar')" class="button dropdownbutton">Horizontal bar</button>
+        <button onclick="changeBar('bar')" class="button dropdownbutton">Vertical bar</button>
+        <button onclick="changeBar('RadialBar')" class="button dropdownbutton">Radial bar</button>
+        <button onclick="changeBar('pie')" class="button dropdownbutton">Pie chart</button>
+  </div>
+</div>
+    <div class="dropdown" style="display: inline-block">
+<button onclick="ToggleDropDown('myDropdown2')" class="dropbtn">Compare with other job <i class="fa fa-caret-down"></i></button>
+  <div id="myDropdown2" class="dropdown-content">
+          {% for jobi in job.experiment.job_set.all %}
+              {% if jobi != job %}
+                 <a href="/monitor/compare/?job1={{job.job_name}}&job2={{jobi.job_name}}" > {{jobi.job_name}}</a>
+              {% endif %}
+        {% endfor %}
+  </div>
+</div>
+     <canvas id="myChart" width="250" height="250"></canvas>
+     <div id="chart"></div>
+
+
+
+
+<script>
+
+/* When the user clicks on the button,
+toggle between hiding and showing the dropdown content */
+function ToggleDropDown(dropdown) {
+    document.getElementById(dropdown).classList.toggle("show");
+}
+var radialBar = 'false';
+var ctx = document.getElementById("myChart").getContext('2d');
+var color = Chart.helpers.color;
+var data = {
+        labels: {{ timer_names|safe }},
+        datasets: [{
+            label: 'max',
+            data: {{ max }},
+            backgroundColor:"#0000ff",
+            borderColor:"#0000ff",
+            borderWidth: 1
+        }, {
+            label: 'avg',
+            data: {{ avg }},
+            backgroundColor:"#ff0000" ,
+            borderColor:"#ff0000" ,
+            borderWidth: 1
+        },{
+            label: 'min',
+            data: {{ min }},
+            backgroundColor: "#00ff00",
+            borderColor: "#00ff00",
+            borderWidth: 1
+        }]
+    }
+var config = {
+        type: 'horizontalBar',
+        data:data ,
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }],
+                xAxes:[]
+            }
+        }
+}
+  var myChart = new Chart(ctx,config);
+
+/* When the user clicks on the button,
+toggle between hiding and showing the dropdown content */
+function myFunction() {
+    document.getElementById("myDropdown").classList.toggle("show");
+}
+
+function changeBar(chartType) {
+        var canvas = document.getElementById("myChart") ;
+        var radialChartCanvas = document.getElementById("chart") ;
+        if(myChart){
+            myChart.destroy() ;
+        }
+        d3.select('#chart').selectAll('svg').remove();
+
+
+    if (chartType=='horizontalBar' || chartType=='bar' || chartType=='pie'){
+        radialChartCanvas.hidden=false;
+        canvas.hidden=false;
+        radialBar=false ;
+        myChart = new Chart(ctx,  {
+        type: chartType,
+        data:data ,
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }],
+                xAxes:[]
+            }
+        }
+    });
+    }
+
+    if (chartType == 'RadialBar'){
+        radialBar=true;
+        canvas.hidden=true;
+                radialChartCanvas.hidden=false;
+    var dataRadial = {{ radialmaxData|safe }} {{ radialavgData|safe }} {{ radialminData|safe }};
+    radial_Chart = radialBarChart()
+    .barHeight(600)
+    .domain([0,10])
+    .barColors(['yellow','blue'])
+     .tickValues([5,10,15])
+    .tickCircleValues([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+
+
+    d3.select('#chart')
+    .datum(dataRadial)
+    .call(radial_Chart);
+    }
+
+
+
+}
+
+// Close the dropdown menu if the user clicks outside of it
+window.onclick = function(event) {
+  if (!event.target.matches('.dropbtn')) {
+    var dropdowns = document.getElementsByClassName("dropdown-content");
+    var i;
+    for (i = 0; i < dropdowns.length; i++) {
+      var openDropdown = dropdowns[i];
+      if (openDropdown.classList.contains('show')) {
+        openDropdown.classList.remove('show');
+      }
+    }
+  }
+}
+</script>
+{% endblock %}
