@@ -202,12 +202,12 @@ class ExperimentDetailView(g.DetailView):
 #    template_name = 'job_detail.html'
 
 def jobdetailview(request, pk):
+    t1 = datetime.now()
     try:
         job_id = Job.objects.get(pk=pk)
     except Job.DoesNotExist:
         raise Http404("Job does not exist")
-    timingset = timing.objects.all().filter(job=job_id)
-    timer_tuple_list = []
+    timingset = timing.objects.all().select_related('timer').filter(job=job_id)
     timer_tuple_list = u.getDataFromTiming(timingset)
     timer_names = [i[0] for i in timer_tuple_list]
     avgData = [i[3] for i in timer_tuple_list]
@@ -229,7 +229,8 @@ def jobdetailview(request, pk):
     radialavgData+="}},"
     radialmaxData += "}},"
     radialminData += "}}]"
-
+    delta = datetime.now() - t1
+    print("time = " + str(delta.seconds))
 
     return render(
         request,
@@ -249,13 +250,14 @@ def jobcompareview(request, pk, pk2):
         context={'job': job_id,'job2':job2_id}
     )
 def jobcompareview2(request):
+    t1 = datetime.now()
     try:
         job_id = Job.objects.get(pk=request.GET.get('job1',''))
         job2_id = Job.objects.get(pk=request.GET.get('job2',''))
     except Job.DoesNotExist:
         raise Http404("Job does not exist")
 
-    timingset = timing.objects.all().filter(job=job_id)
+    timingset = timing.objects.all().select_related('timer').filter(job=job_id)
     timer_tuple_list = u.getDataFromTiming(timingset)
     timer_names = [i[0] for i in timer_tuple_list]
     avgData = [i[3] for i in timer_tuple_list]
@@ -278,7 +280,7 @@ def jobcompareview2(request):
     radialmaxData += "}},"
     radialminData += "}}]"
 
-    timingset2 = timing.objects.all().filter(job=job2_id)
+    timingset2 = timing.objects.all().select_related('timer').filter(job=job2_id)
     timer_tuple_list2 = u.getDataFromTiming(timingset2)
     timer_names2 = [i[0] for i in timer_tuple_list2]
     avgData2 = [i[3] for i in timer_tuple_list2]
@@ -288,7 +290,7 @@ def jobcompareview2(request):
     radialavgData2 = " { \"year\": 1910,\"data\": { "
     radialmaxData2 = "[ { \"year\": 1910,\"data\": { "
     radialminData2 = " { \"year\": 1910,\"data\": { "
-
+    print((datetime.now() - t1).seconds)
     for name, ma, mi, av in timer_tuple_list:
         radialavgData2 = radialavgData2 + "\"" + name + "\" :" + str(av) + ","
         radialminData2 = radialminData2 + "\"" + name + "\" :" + str(mi) + ","
