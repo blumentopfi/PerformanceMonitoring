@@ -264,7 +264,7 @@ def getDataFromTiming(timingset):
     for timer_instance in timerset:
         temptuple = (timer_instance,[])
         for timing_instance in timingset:
-            if timing_instance.timer.id == timer_instance.id:
+            if timing_instance.timer_id == timer_instance.id:
                 a,b = temptuple
                 b.append(timing_instance)
         dataset.append(temptuple)
@@ -284,7 +284,7 @@ def getDataFromTiming(timingset):
         setList = list_ranks
         if (len(setList) != len(list_ranks)):
             print(timer_instance.timer_name)
-        avg= 0
+        avg = 0
         if (count_tsum > 0 ):
             avg = count_tsum/len(timing_list)
         if (max != 0 and min != 1000000000000000 and avg != 0):
