@@ -250,7 +250,6 @@ def jobcompareview(request, pk, pk2):
         context={'job': job_id,'job2':job2_id}
     )
 def jobcompareview2(request):
-    t1 = datetime.now()
     try:
         job_id = Job.objects.get(pk=request.GET.get('job1',''))
         job2_id = Job.objects.get(pk=request.GET.get('job2',''))
@@ -290,7 +289,6 @@ def jobcompareview2(request):
     radialavgData2 = " { \"year\": 1910,\"data\": { "
     radialmaxData2 = "[ { \"year\": 1910,\"data\": { "
     radialminData2 = " { \"year\": 1910,\"data\": { "
-    print((datetime.now() - t1).seconds)
     for name, ma, mi, av in timer_tuple_list:
         radialavgData2 = radialavgData2 + "\"" + name + "\" :" + str(av) + ","
         radialminData2 = radialminData2 + "\"" + name + "\" :" + str(mi) + ","
@@ -313,4 +311,34 @@ def jobcompareview2(request):
                 'avg':avgData,'min':minData,'max':maxData,'timer_names':json_timer_names,'radialmaxData':radialmaxData,'radialavgData':radialavgData,'radialminData':radialminData \
         ,'avg2':avgData2, 'min2': minData2, 'max2': maxData2, 'timer_names2': json_timer_names2, 'radialmaxData2': radialmaxData2, 'radialavgData2': radialavgData2, 'radialminData2': radialminData2
                  }
+    )
+
+def timerdetailview(request, name):
+    try:
+        timer_id = timer.objects.get(timer_name=name)
+        job_id = Job.objects.get(pk=request.GET.get('job',''))
+    except Job.DoesNotExist:
+        raise Http404("Job does not exist")
+    except timer.DoesNotExist:
+        raise Http404("Timer does not exist")
+
+    timingset = timing.objects.all().select_related('timer').filter(job=job_id,timer=timer_id)
+    rank_timing_dictionary = {}
+    for timing_instance in timingset:
+        rank = timing_instance.i_mpi_rank
+        if rank in rank_timing_dictionary:
+            rank_timing_dictionary[rank].append(timing_instance.tsum)
+        else:
+            rank_timing_dictionary[rank] = [timing_instance.tsum]
+
+    data = []
+    labels = []
+    for rank in rank_timing_dictionary:
+        data.append(sum(rank_timing_dictionary[rank])/float(len(rank_timing_dictionary[rank])))
+        labels.append(rank)
+
+    return render(
+        request,
+        'timer_detail.html',
+        context={'timer': timer_id,'job':job_id,'timings':data,'labels':labels}
     )

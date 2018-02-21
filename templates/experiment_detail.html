@@ -10,7 +10,6 @@
     <h4>Jobs</h4>
   <div class="list-group">
     {% for job in experiment_detail.job_set.all %}
-
          <a href="{{ job.get_absolute_url }}" class="list-group-item"> {{job.job_name}}</a>
     {% endfor %}
   </div>

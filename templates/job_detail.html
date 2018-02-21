@@ -91,7 +91,16 @@ var config = {
         }
 }
   var myChart = new Chart(ctx,config);
+var canvas = document.getElementById('myChart');
+canvas.onclick = function (evt) {
+    activePoints = myChart.getElementAtEvent(evt);
+     var chartData = activePoints[0]['_chart'].config.data;
+    var idx = activePoints[0]['_index'];
 
+    var label = chartData.labels[idx];
+    console.log(label)
+    window.location.href = "/monitor/timer/"+label+"/?job="+{{ job.job_name }};
+};
 /* When the user clicks on the button,
 toggle between hiding and showing the dropdown content */
 function myFunction() {

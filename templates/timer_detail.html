@@ -1,0 +1,64 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+<script src="/static/scripts/d3.v3.min.js"></script>
+<script src="/static/scripts/radialBarChart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+     <canvas id="myChart" width="800" height="600"></canvas>
+<script>
+var ctx = document.getElementById("myChart").getContext('2d');
+var data = {
+        labels: {{ labels|safe }},
+        datasets: [{
+            label: 'Timing',
+            data: {{ timings }},
+            backgroundColor:"#0000ff",
+            borderColor:"#0000ff",
+            borderWidth: 1,
+            fill:false
+        }]
+    }
+var config = {
+        type: 'line',
+        data:data ,
+        options: {
+                responsive: false,
+                title:{
+                    display:true,
+                    text:'{{ timer.timer_name }}'
+                },
+                tooltips: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                hover: {
+                    mode: 'nearest',
+                    intersect: true
+                },
+                scales: {
+                    xAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Rank'
+                        }
+                    }],
+                    yAxes: [{
+                        display: true,
+                        scaleLabel: {
+                            display: true,
+                            labelString: 'Value'
+                        }
+                    }]
+                }}}
+  var myChart = new Chart(ctx,config);
+/* When the user clicks on the button,
+toggle between hiding and showing the dropdown content */
+function myFunction() {
+    document.getElementById("myDropdown").classList.toggle("show");
+}
+
+</script>
+{% endblock %}

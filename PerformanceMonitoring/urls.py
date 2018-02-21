@@ -64,6 +64,7 @@ urlpatterns = [
     path('jobs/<pk>', views.jobdetailview, name='job-detail-view'),
     path('jobs/<pk>/<pk2>', views.jobcompareview, name='job-compare-view'),
     path(r'compare/', views.jobcompareview2, name='job-compare-view2'),
+    path(r'timer/<name>/', views.timerdetailview, name='timer-detail-view'),
     path('docs/', TemplateView.as_view(template_name='docs.html'), name='doc-view'),
     path('docs/', include(doc_urls)),
     ]
