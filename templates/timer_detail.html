@@ -6,7 +6,7 @@
 <script src="/static/scripts/d3.v3.min.js"></script>
 <script src="/static/scripts/radialBarChart.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-     <canvas id="myChart" width="800" height="600"></canvas>
+     <canvas id="myChart" width="1000" height="600"></canvas>
 <script>
 var ctx = document.getElementById("myChart").getContext('2d');
 var data = {
@@ -19,7 +19,7 @@ var data = {
             borderWidth: 1,
             fill:false
         }]
-    }
+    };
 var config = {
         type: 'line',
         data:data ,

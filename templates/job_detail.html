@@ -5,6 +5,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
 <script src="/static/scripts/d3.v3.min.js"></script>
 <script src="/static/scripts/radialBarChart.js"></script>
+    <script src="/static/scripts/HorizontalBarPlugin.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
 
@@ -18,7 +19,7 @@
     <p><strong>Stop Date:</strong> {{ job.stop_date }}</p>
     <p><strong>MPI Ranks:</strong> {{ job.n_mpi_ranks }}</p>
     <p><strong>OMP Threads:</strong> {{ job.n_omp_threads }}</p>
-    <p><strong>Simulated Time:</strong> {{ job.simulated_time }}</p>
+    <p><strong>Simulated Time:</strong> {{ simulated_time }} years/day</p>
 <div class="dropdown" style="display: inline-block">
 <button onclick="ToggleDropDown('myDropdown')" class="dropbtn">Choose chart type <i class="fa fa-caret-down"></i></button>
   <div id="myDropdown" class="dropdown-content">
@@ -28,10 +29,11 @@
         <button onclick="changeBar('pie')" class="button dropdownbutton">Pie chart</button>
   </div>
 </div>
+    <button onclick="HideLabel('model_init')" class="button">Hide model Init</button>
     <div class="dropdown" style="display: inline-block">
 <button onclick="ToggleDropDown('myDropdown2')" class="dropbtn">Compare with other job <i class="fa fa-caret-down"></i></button>
   <div id="myDropdown2" class="dropdown-content">
-          {% for jobi in job.experiment.job_set.all %}
+          {% for jobi in joblist %}
               {% if jobi != job %}
                  <a href="/monitor/compare/?job1={{job.job_name}}&job2={{jobi.job_name}}" > {{jobi.job_name}}</a>
               {% endif %}
@@ -45,7 +47,10 @@
 
 
 <script>
+var chart = document.getElementById('chart');
+chart.onclick = function (evt) {
 
+};
 /* When the user clicks on the button,
 toggle between hiding and showing the dropdown content */
 function ToggleDropDown(dropdown) {
@@ -57,55 +62,63 @@ var color = Chart.helpers.color;
 var data = {
         labels: {{ timer_names|safe }},
         datasets: [{
+            type:'line',
             label: 'max',
             data: {{ max }},
-            backgroundColor:"#0000ff",
-            borderColor:"#0000ff",
-            borderWidth: 1
+            backgroundColor:'rgba(255,0,0, 0.2)',
+            borderColor:"#000000",
+            borderWidth: 1,
+                                          fill: false,
+                    showLine: false,
         }, {
             label: 'avg',
             data: {{ avg }},
-            backgroundColor:"#ff0000" ,
-            borderColor:"#ff0000" ,
+            backgroundColor:'rgba(0,255,0, 0.2)' ,
+            borderColor:"#000000" ,
             borderWidth: 1
         },{
+            type:'line',
+            fill: false,
+            showLine: false,
             label: 'min',
             data: {{ min }},
-            backgroundColor: "#00ff00",
-            borderColor: "#00ff00",
+            backgroundColor: 'rgba(0,0,255, 0.2)',
+            borderColor: "#000000",
             borderWidth: 1
         }]
     }
-var config = {
-        type: 'horizontalBar',
-        data:data ,
-        options: {
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        beginAtZero:true
-                    }
-                }],
-                xAxes:[]
-            }
-        }
-}
-  var myChart = new Chart(ctx,config);
+  var myChart;
+
+changeBar('horizontalBar');
+
 var canvas = document.getElementById('myChart');
 canvas.onclick = function (evt) {
     activePoints = myChart.getElementAtEvent(evt);
-     var chartData = activePoints[0]['_chart'].config.data;
-    var idx = activePoints[0]['_index'];
-
-    var label = chartData.labels[idx];
-    console.log(label)
-    window.location.href = "/monitor/timer/"+label+"/?job="+{{ job.job_name }};
+    if (activePoints.length > 0 ) {
+        var chartData = activePoints[0]['_chart'].config.data;
+        var idx = activePoints[0]['_index'];
+        var label = chartData.labels[idx];
+        window.location.href = "/monitor/timer/" + label + "/?job=" +{{ job.job_name }};
+    }
 };
+
+
+function HideLabel(name){
+    console.log(myChart)
+    myChart.config.data.labels[0].hidden = true
+    myChart.update()
+}
+
+
 /* When the user clicks on the button,
 toggle between hiding and showing the dropdown content */
 function myFunction() {
     document.getElementById("myDropdown").classList.toggle("show");
 }
+
+Array.prototype.max = function() {
+  return Math.max.apply(null, this);
+};
 
 function changeBar(chartType) {
         var canvas = document.getElementById("myChart") ;
@@ -120,9 +133,21 @@ function changeBar(chartType) {
         radialChartCanvas.hidden=false;
         canvas.hidden=false;
         radialBar=false ;
-        myChart = new Chart(ctx,  {
+
+        if (chartType == 'pie'){
+             myChart = new Chart(ctx,  {
         type: chartType,
-        data:data ,
+        data:{
+
+        labels: {{ timer_names|safe }},
+        datasets: [{
+            label: 'avg',
+            data: {{ avg }},
+            backgroundColor:"#562A72" ,
+            borderColor:"#000000" ,
+            borderWidth: 1
+        }]
+        },
         options: {
             scales: {
                 yAxes: [{
@@ -133,27 +158,25 @@ function changeBar(chartType) {
                 xAxes:[]
             }
         }
-    });
+        });
+        }else{myChart = new Chart(ctx,  {
+        type: chartType,
+        data:data ,
+        options: {
+            lineAtIndex:200 ,
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }],
+                xAxes:[]
+            }
+        }
+        });
+        }
+
     }
-
-    if (chartType == 'RadialBar'){
-        radialBar=true;
-        canvas.hidden=true;
-                radialChartCanvas.hidden=false;
-    var dataRadial = {{ radialmaxData|safe }} {{ radialavgData|safe }} {{ radialminData|safe }};
-    radial_Chart = radialBarChart()
-    .barHeight(600)
-    .domain([0,10])
-    .barColors(['yellow','blue'])
-     .tickValues([5,10,15])
-    .tickCircleValues([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
-
-
-    d3.select('#chart')
-    .datum(dataRadial)
-    .call(radial_Chart);
-    }
-
 
 
 }

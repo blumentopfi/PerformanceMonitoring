@@ -2,92 +2,119 @@
 
 {% block content %}
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
 
 
-  <h1>Experiment: {{ experiment_detail.experiment_name }}</h1>
-  <div style="margin-left:20px;margin-top:20px">
-    <h4>Jobs</h4>
-  <div class="list-group">
-    {% for job in experiment_detail.job_set.all %}
-         <a href="{{ job.get_absolute_url }}" class="list-group-item"> {{job.job_name}}</a>
-    {% endfor %}
-  </div>
-  </div>
+    <h1>Experiment: {{ experiment_detail.experiment_name }}</h1>
+    <div style="margin-left:20px;margin-top:20px">
+        <h4>Jobs</h4>
+        <div class="list-group">
+            {% for job in job_set %}
+                {%  if job in experiment_detail.job_set.all %}
+                <a href="{{ job.get_absolute_url }}" class="list-group-item"> {{ job.job_name }}</a>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
 
-     <canvas id="myChart" width="400" height="200"></canvas>
+    <canvas id="myChart" width="400" height="200"></canvas>
 
-<script>
-var ourData = {{ times }}
-var ctx = document.getElementById("myChart").getContext('2d');
-var color = Chart.helpers.color;
-var myChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: {{ job_names|safe }},
-        datasets: [{
-            label:'Total time',
-            data: ourData,
-            backgroundColor:"#ff0000" ,
-            borderColor:"#ff0000" ,
-            borderWidth: 1,
-            fill:false,
-            showLine:false
-        },
-        {
-  data: Array.apply(null, new Array(50)).map(Number.prototype.valueOf,{{ mean }}),
-  fill: false,
-  radius: 0,
-            label:'Mean',
-            borderWidth: 2,
-            borderColor:"#000000",
-  backgroundColor: "#000000"
-}],
+    <script>
+        console.log(Array.apply(null, new Array(50)).map(Number.prototype.valueOf, {{ mean }}))
+        var run_times = {{ run_times }};
+        var times_till_run = {{ times_till_run }};
+        var ctx = document.getElementById("myChart").getContext('2d');
+        var color = Chart.helpers.color;
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            responsive: true,
+            data: {
+                labels: {{ job_names|safe }},
+                datasets: [{
+                     yAxisID: 'lineChart',
+                    type: 'line',
+                    label: 'total runtime',
+                    data: run_times,
+                    backgroundColor: "#D4CA6A",
+                    borderColor: "#D4CA6A",
+                    borderWidth: 1,
+                    fill: false,
+                    showLine: false
+                },
+                    {
+                         yAxisID: 'lineChart',
+                        data: Array.apply(null, new Array(50)).map(Number.prototype.valueOf, {{ mean }}),
+                        fill: false,
+                        type: 'line',
+                        radius: 0,
+                        label: 'Mean',
+                        borderWidth: 2,
+                        borderColor: "#000000",
+                        backgroundColor: "#000000"
+                    }, {
+                         yAxisID: 'barChart',
+                        type: 'bar',
+                        label: 'Queueing time',
+                        backgroundColor: '#6A266F',
+                        data: {{ times_till_run }},
+                        borderColor: 'white',
+                        borderWidth: 2
+                    }],
+            },
+            options: {
+                tooltips: {
+    callbacks: {
+      label: (item) => `${item.yLabel} min`,
     },
-    options: {
-        elements:{
-		point: {
-			radius: 5,
-			pointStyle: 'rect',
-			backgroundColor: '#ff0000',
-			borderColor: '#ff0000',
-			borderWidth: 1,
-			// Hover
-			hitRadius: 1,
-			hoverRadius: 4,
-			hoverBorderWidth: 1
-		}
-        },
-        scales: {
-            yAxes: [{
-                ticks: {
-                    min:0,
-                    max:2,
-                    beginAtZero:true
-                }
-            }],
-            xAxes: [{
-                ticks: {
-                    min:0,
-                    max:20,
-                    beginAtZero:true
-                }
-            }],
-        }
-    }
-});
-var canvas = document.getElementById("myChart");
-canvas.onclick = function (evt) {
-    activePoints = myChart.getElementAtEvent(evt);
-     var chartData = activePoints[0]['_chart'].config.data;
-    var idx = activePoints[0]['_index'];
+  },
+                elements: {
+                    point: {
+                        radius: 5,
+                        pointStyle: 'rect',
+                        backgroundColor: '#ff0000',
+                        borderColor: '#ff0000',
+                        borderWidth: 1,
+                        // Hover
+                        hitRadius: 1,
+                        hoverRadius: 4,
+                        hoverBorderWidth: 1
+                    }
+                },
+                scales: {
+                    yAxes: [{
+                        id: 'lineChart',
+                        ticks: {
+                            min: 0,
 
-    var label = chartData.labels[idx];
-    console.log(label)
-    window.location.href = "/monitor/jobs/"+label;
-    //alert(myChart.datasets[0].points.indexOf(points[0]));
-};
-</script>
-    <h>{{ job_names }}</h>
-     <h>{{ times }}</h>
+                            beginAtZero: true
+                        }
+                    }, {
+                        id: 'barChart',
+                        position: 'right',
+                        ticks: {
+                            min: 0,
+                            beginAtZero: true
+                        }
+                    }],
+                    xAxes: [{
+                        barPercentage: 0.2,
+                        ticks: {
+                            min: 0,
+                            beginAtZero: true
+                        }
+                    }],
+                }
+            }
+        });
+        var canvas = document.getElementById("myChart");
+        canvas.onclick = function (evt) {
+            activePoints = myChart.getElementAtEvent(evt);
+            var chartData = activePoints[0]['_chart'].config.data;
+            var idx = activePoints[0]['_index'];
+            var label = chartData.labels[idx];
+            console.log(label)
+            window.location.href = "/monitor/jobs/" + label;
+        };
+    </script>
+
 {% endblock %}

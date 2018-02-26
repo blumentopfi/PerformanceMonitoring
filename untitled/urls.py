@@ -6,6 +6,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from PerformanceMonitoring.utils import ProcessHDFToDatabase
 from PerformanceMonitoring import models as m
+import logging
 import h5py
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -15,4 +16,5 @@ urlpatterns = [
 #print("TESTASDASDASD")
 #print(m.ClimateModel.objects.all()[0].experiment_set.all()[0])
 
-#ProcessHDFToDatabase(h5py.File("C:/icon-timer-0001.h5", mode='r'))
+#ProcessHDFToDatabase(h5py.File('C:\icon-timer-0010.h5', mode='r'))
+

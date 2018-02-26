@@ -1,8 +1,11 @@
 import numpy as np
 import h5py
-import datetime
+from datetime import datetime
 from django.db import models
 from django.db import connection
+import json
+import re
+from datetime import timedelta
 from PerformanceMonitoring import models as m
 _SCT_H5_TL_GROUP = '/'
 _SCT_H5_DEFAULT_CTX = 'default context'
@@ -11,14 +14,11 @@ _SCT_H5_REPORT_ATTRS_GROUP = 'report_attributes'
 def _raise_inv_format(msg):
     raise ValueError('h5 file has invalid format: ' + msg)
 def _db_get_timer_idx(model, timer):
-
-    set = m.timer.objects.all().filter(model=model).filter(timer_name=timer.decode('UTF-8'))
-    if not set:
-        new_timer = m.timer.objects.create(model=model,timer_name=timer.decode('UTF-8'))
-        return new_timer.id
-    return set[0].id
+    new_timer,created = m.timer.objects.get_or_create(model=model,timer_name=timer.decode('UTF-8'))
+    return new_timer.id
 
 def ProcessHDFToDatabase(hdf5File):
+    t1 = datetime.now()
     try:
         tl_h5_grp = hdf5File[_SCT_H5_TL_GROUP]
         h5_sct_int_attrs_grp = tl_h5_grp[_SCT_H5_SCT_INTERNAL_ATTRS_GROUP]
@@ -104,17 +104,17 @@ def ProcessHDFToDatabase(hdf5File):
         if not isinstance(submit_time, str):
             _raise_inv_format('\'submit_time\' is not of type string')
         try:
-            submit_time = datetime.datetime.strptime(submit_time,
+            submit_time = datetime.strptime(submit_time,
                                                      '%Y-%m-%d %H:%M:%S')
         except ValueError as e:
-            _raise_inv_format('\'submit_time\' format not recognized')
+            submit_time = datetime.now()
         print("Submit time " + str(submit_time))
 
         start_time = h5_sct_int_attrs_grp.attrs['sct start time'].decode('UTF-8')
         if not isinstance(start_time, str):
             _raise_inv_format('\'start_time\' is not of type string')
         try:
-            start_time = datetime.datetime.strptime(start_time,
+            start_time = datetime.strptime(start_time,
                                                     '%Y-%m-%d %H:%M:%S')
         except ValueError as e:
             _raise_inv_format('\'start_time\' format not recognized')
@@ -124,7 +124,7 @@ def ProcessHDFToDatabase(hdf5File):
         if not isinstance(stop_time, str):
             _raise_inv_format('\'stop_time\' is not of type string')
         try:
-            stop_time = datetime.datetime.strptime(stop_time,
+            stop_time = datetime.strptime(stop_time,
                                                    '%Y-%m-%d %H:%M:%S')
         except ValueError as e:
             _raise_inv_format('\'stop_time\' format not recognized')
@@ -165,7 +165,6 @@ def ProcessHDFToDatabase(hdf5File):
             _raise_inv_format('\'hosts\' is not of type list of strings')
         elif hosts.ndim != 1 or hosts.shape[0] != nranks:
             _raise_inv_format('dimension mismatch for \'hosts\'')
-        print("Hosts " + str(hosts))
 
         ctx_h5_grp = tl_h5_grp[_SCT_H5_DEFAULT_CTX]
         timer_names = ctx_h5_grp['timer_names']
@@ -227,34 +226,50 @@ def ProcessHDFToDatabase(hdf5File):
     job_id = m.Job.objects.all().filter(job_name=job)
     if not job_id:
         job_id = m.Job.objects.create(experiment=experiment_db_entry,job_name=job,user_name=user_name,repository=repo,revision=rev,branch=branch,submitted=submit_time,start_date=start_time,stop_date=stop_time,\
-                                 n_mpi_ranks=int(nranks),n_omp_threads=int(nthreads))
-    print("created the job")
+                                 n_mpi_ranks=int(nranks),n_omp_threads=int(nthreads),simulated_time=simulated_time)
     job_db_instance = m.Job.objects.all().filter(job_name=job)[0]
-    #cursor = connection.cursor
-    #cursor.executemany('INSERT INTO job_ranks (job,i_mpi_rank,hostname) VALUES (%s,%s,%s);',
-                    #    zip([job_id] * nranks, range(0, nranks), hosts))
 
-    #print(len([job_db_instance.id]*nranks))
     for j,impi,hostname in zip([job_db_instance.job_name] * nranks, range(0, nranks), hosts):
         m.job_rank.objects.create(job=job_db_instance,i_mpi_rank=impi,hostname=hostname.decode('UTF-8'))
-        print(impi)
 
-    Counter = 0
     print(nranks*(nthreads+1)*ntimers)
+    timing_create_list = []
 
     for i in range(0, nranks):
         for j in range(0, nthreads + 1):
             for k in range(0, ntimers):
-                Counter = Counter+1
-                print(Counter)
                 if not timer_cnum[i, j, k]:
                     continue
-                timer_db_instance = m.timer.objects.filter(id=int(timer_ids[i, k]))[0]
-                if not(m.timing.objects.all().filter(job_id=job_db_instance).filter(timer=timer_db_instance).filter(i_mpi_rank=i).filter(i_omp_thread=j)):
-                    m.timing.objects.create(job=job_db_instance,timer=timer_db_instance,i_mpi_rank=i,i_omp_thread=j,cnum=int(timer_cnum[i, j, k]),tsum=float(timer_tsum[i, j, k]))
-
+                #timer_db_instance = m.timer.objects.get(id=int(timer_ids[i, k]))
+                if not(m.timing.objects.all().filter(job_id=job_db_instance,timer_id=int(timer_ids[i, k]),i_mpi_rank=i,i_omp_thread=j).exists()):
+                    #m.timing.objects.create(job=job_db_instance,timer=timer_db_instance,i_mpi_rank=i,i_omp_thread=j,cnum=int(timer_cnum[i, j, k]),tsum=float(timer_tsum[i, j, k]))
+                    timing = m.timing(job=job_db_instance,i_mpi_rank=i,i_omp_thread=j,cnum=int(timer_cnum[i, j, k]),tsum=float(timer_tsum[i, j, k]))
+                    timing.timer_id=int(timer_ids[i, k])
+                    timing_create_list.append(timing)
+    m.timing.objects.bulk_create(timing_create_list)
+    print("It took :" + str(datetime.now()-t1))
     return
-
+def getSimulatedTime(job):
+    regex = re.compile(
+        r'((?P<years>\d+?)Y)?((?P<days>\d+?)D)?((?P<hours>\d+?)H)?((?P<minutes>\d+?)M)?((?P<seconds>\d+?)S)?')
+    parts = regex.match(job.simulated_time[1:])
+    if not parts:
+        return
+    parts = parts.groupdict()
+    time_params = {}
+    for (name, param) in parts.items():
+        if param:
+            time_params[name] = int(param)
+    simulated_time = 0
+    if 'years' in time_params:
+        simulated_time += time_params['years'] * 60 * 60 * 24 * 365
+    if 'days' in time_params:
+        simulated_time += time_params['days']*60*60*24
+    if 'minutes' in time_params:
+        simulated_time += time_params['minutes']*60
+    if 'seconds' in time_params:
+        simulated_time += time_params['seconds']
+    return (((simulated_time / (job.stop_date - job.start_date).total_seconds()) * 86400) / (365 * 24 * 60 * 60))
 
 def getDataFromTiming(timingset):
 
@@ -292,8 +307,26 @@ def getDataFromTiming(timingset):
             timer_tuple_list.append(timer_tuple)
 
 
-
-
     #get only the top 10
-    timer_tuple_list = sorted(timer_tuple_list, key=lambda t: t[3], reverse=True)[:10]
-    return timer_tuple_list
+    timer_tuple_list = sorted(timer_tuple_list, key=lambda t: t[3], reverse=True)
+    timer_names = [i[0] for i in timer_tuple_list]
+    avgData = [i[3] for i in timer_tuple_list]
+    minData = [i[2] for i in timer_tuple_list]
+    maxData = [i[1] for i in timer_tuple_list]
+    json_timer_names = json.dumps(timer_names)
+    radialavgData = " { \"year\": 1910,\"data\": { "
+    radialmaxData = "[ { \"year\": 1910,\"data\": { "
+    radialminData = " { \"year\": 1910,\"data\": { "
+    for name, ma, mi, av in timer_tuple_list[1:]:
+        radialavgData = radialavgData + "\"" + name + "\" :" + str(av) + ","
+        radialminData = radialminData + "\"" + name + "\" :" + str(mi) + ","
+        radialmaxData = radialmaxData + "\"" + name + "\" :" + str(ma) + ","
+    # strip the last comma
+    radialavgData = radialavgData[:-1]
+    radialminData = radialminData[:-1]
+    radialmaxData = radialmaxData[:-1]
+    radialavgData += "}},"
+    radialmaxData += "}},"
+    radialminData += "}}]"
+    return timer_names,maxData,avgData,minData,radialmaxData,radialavgData,radialminData
+
