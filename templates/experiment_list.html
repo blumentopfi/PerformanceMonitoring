@@ -1,0 +1,79 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+    <style>
+    .just-padding {
+    padding: 15px;
+}
+
+.list-group.list-group-root {
+    padding: 0;
+    overflow: hidden;
+}
+
+.list-group.list-group-root .list-group {
+    margin-bottom: 0;
+}
+
+.list-group.list-group-root .list-group-item {
+    border-radius: 0;
+    border-width: 1px 0 0 0;
+}
+
+.list-group.list-group-root > .list-group-item:first-child {
+    border-top-width: 0;
+}
+
+.list-group.list-group-root > .list-group > .list-group-item {
+    padding-left: 30px;
+}
+
+.list-group.list-group-root > .list-group > .list-group > .list-group-item {
+    padding-left: 45px;
+}
+
+.list-group-item .glyphicon {
+    margin-right: 5px;
+}
+    </style>
+    <h1>Experiment List</h1>
+     {% for key, values in search_query.items %}
+    <p>{{ key }} = {{ values }}</p>
+    {% endfor %}
+    {% if experiment_set %}
+        <div class="list-group list-group-root well">
+    {% for experiment in experiment_set %}
+        <a href="{{ experiment.get_absolute_url }}?" id = "{{ forloop.counter0 }}"class="list-group-item"><strong>{{experiment.experiment_name}}</strong></a>
+        <div class = "list-group">
+        {% for job in job_queryset %}
+            {% if job in experiment.job_set.all %}
+            <a href="{{ job.get_absolute_url }}"class="list-group-item">{{job.job_name}} : ({{ job.submitted }})</a>
+            {% endif %}
+            {% endfor %}
+        </div>
+
+    {% endfor %}
+        </div>
+    {% else %}
+      <p>Your search Query did not match any results</p>
+    {% endif %}
+
+<script>
+var jobs = {{ job_set|safe }}
+var Counter = 0 ;
+console.log(jobs)
+while(document.getElementById(Counter)){
+    var a = document.getElementById(Counter);
+    console.log(a);
+    for (i = 0; i < jobs.length; i++) {
+        a.href = a.href.concat("jobs=")
+        a.href = a.href.concat(jobs[i]);
+        a.href = a.href.concat("&");
+    }
+    Counter++ ;
+}
+
+</script>
+
+{% endblock %}
+

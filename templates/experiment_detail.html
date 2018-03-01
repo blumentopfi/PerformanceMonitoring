@@ -3,7 +3,7 @@
 {% block content %}
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
-
+    <script src="/static/scripts/BarPlugin.js"></script>
 
     <h1>Experiment: {{ experiment_detail.experiment_name }}</h1>
     <div style="margin-left:20px;margin-top:20px">
@@ -20,6 +20,7 @@
     <canvas id="myChart" width="400" height="200"></canvas>
 
     <script>
+     console.log(Chart.controllers.bar.prototype.draw)
         console.log(Array.apply(null, new Array(50)).map(Number.prototype.valueOf, {{ mean }}))
         var run_times = {{ run_times }};
         var times_till_run = {{ times_till_run }};
@@ -31,37 +32,23 @@
             data: {
                 labels: {{ job_names|safe }},
                 datasets: [{
-                     yAxisID: 'lineChart',
-                    type: 'line',
-                    label: 'total runtime',
-                    data: run_times,
-                    backgroundColor: "#D4CA6A",
-                    borderColor: "#D4CA6A",
-                    borderWidth: 1,
-                    fill: false,
-                    showLine: false
-                },
-                    {
-                         yAxisID: 'lineChart',
-                        data: Array.apply(null, new Array(50)).map(Number.prototype.valueOf, {{ mean }}),
-                        fill: false,
-                        type: 'line',
-                        radius: 0,
-                        label: 'Mean',
-                        borderWidth: 2,
-                        borderColor: "#000000",
-                        backgroundColor: "#000000"
-                    }, {
-                         yAxisID: 'barChart',
                         type: 'bar',
                         label: 'Queueing time',
                         backgroundColor: '#6A266F',
                         data: {{ times_till_run }},
                         borderColor: 'white',
-                        borderWidth: 2
-                    }],
+                        borderWidth: 0
+                    },{
+                    type: 'bar',
+                    label: 'total runtime',
+                    data: run_times,
+                    backgroundColor: "#D4CA6A",
+                    borderColor: "#D4CA6A",
+                    borderWidth: 0,
+                } ],
             },
             options: {
+                 lineAtIndex:{{ mean }} ,
                 tooltips: {
     callbacks: {
       label: (item) => `${item.yLabel} min`,
@@ -82,22 +69,16 @@
                 },
                 scales: {
                     yAxes: [{
-                        id: 'lineChart',
+                        stacked:true,
                         ticks: {
                             min: 0,
 
                             beginAtZero: true
                         }
-                    }, {
-                        id: 'barChart',
-                        position: 'right',
-                        ticks: {
-                            min: 0,
-                            beginAtZero: true
-                        }
                     }],
                     xAxes: [{
-                        barPercentage: 0.2,
+
+                        stacked:true,
                         ticks: {
                             min: 0,
                             beginAtZero: true

@@ -330,3 +330,18 @@ def getDataFromTiming(timingset):
     radialminData += "}}]"
     return timer_names,maxData,avgData,minData,radialmaxData,radialavgData,radialminData
 
+def getRankAndTimings(timer,job):
+    timingset = m.timing.objects.all().select_related('timer').filter(job=job,timer=timer)
+    rank_timing_dictionary = {}
+    for timing_instance in timingset:
+        rank = timing_instance.i_mpi_rank
+        if rank in rank_timing_dictionary:
+            rank_timing_dictionary[rank].append(timing_instance.tsum)
+        else:
+            rank_timing_dictionary[rank] = [timing_instance.tsum]
+    data = []
+    labels = []
+    for rank in rank_timing_dictionary:
+        data.append(sum(rank_timing_dictionary[rank])/float(len(rank_timing_dictionary[rank])))
+        labels.append(rank)
+    return labels,data

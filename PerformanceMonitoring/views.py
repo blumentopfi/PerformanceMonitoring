@@ -181,7 +181,9 @@ def experiment_filter_list(request):
     n_omp_thread = request.GET.get('n_omp_thread')
     submit_time_interval_start_string = request.GET.get('submit_time_interval_start')
     submit_time_interval_end_string =  request.GET.get('submit_time_interval_end')
+    search_query = {k: v for k, v in request.GET.dict().items() if v }
 
+    print(search_query)
     if experiment_name:
         experiment_set = Experiment.objects.all().filter(experiment_name=experiment_name)
     else:
@@ -192,7 +194,7 @@ def experiment_filter_list(request):
     for experiment in experiment_set:
         jobset = experiment.job_set.prefetch_related('experiment').all()
         if (user_name):
-            jobset = jobset.filter(user_name=user_name)
+            jobset = jobset.filter(user_name__contains=user_name)
         if (n_mpi_rank):
             jobset = jobset.filter(n_mpi_ranks=n_mpi_rank)
         if (n_omp_thread):
@@ -219,7 +221,7 @@ def experiment_filter_list(request):
     return render(
         request,
         'experiment_list.html',
-        context={'experiment_set': new_experiment_set, 'job_set': json.dumps(new_jobset) ,'job_queryset':full_jobset})
+        context={'experiment_set': new_experiment_set, 'job_set': json.dumps(new_jobset) ,'job_queryset':full_jobset,'search_query':search_query})
 
 
 
@@ -269,11 +271,11 @@ def jobdetailview(request, pk):
     return render(
         request,
         'job_detail.html',
-        context={'joblist':joblist,'job': job_id,'avg':avgData,'min':minData,'max':maxData,'timer_names':json.dumps(timer_names),'radialmaxData':radialmaxData,'radialavgData':radialavgData,'radialminData':radialminData,\
+        context={'joblist':joblist,'timer_names_non_json':timer_names,'job': job_id,'avg':avgData,'min':minData,'max':maxData,'timer_names':json.dumps(timer_names),'radialmaxData':radialmaxData,'radialavgData':radialavgData,'radialminData':radialminData,\
                  'simulated_time':round(u.getSimulatedTime(job_id),2)}
     )
 
-def jobcompareview2(request):
+def jobcompareview(request):
     try:
         job_id = Job.objects.get(pk=request.GET.get('job1',''))
         job2_id = Job.objects.get(pk=request.GET.get('job2',''))
@@ -286,59 +288,50 @@ def jobcompareview2(request):
     joblist = Job.objects.all()
     tupleList1 = []
     tupleList2 = []
-    print(timer_names[1])
     for i in range(0,len(timer_names)):
         tupleList1.append((timer_names[i],maxData[i],avgData[i],minData[i]))
         tupleList2.append((timer_names2[i], maxData2[i], avgData2[i], minData2[i]))
     mergeSet = []
-    print(tupleList1)
-    print(tupleList2)
     for t1 in tupleList1:
         for t2 in tupleList1:
                 if t1[0] == t2[0] :
                     mergeSet.append((t1[0],t1[1],t2[1],t1[2],t2[2],t1[3],t2[3]))
 
-
-
-    print(mergeSet)
+    maxValue = max(max(maxData),max(maxData2))
     return render(
         request,
         'job_compare.html',
-        context={'joblist':joblist,'job': job_id,'job2':job2_id, \
+        context={'joblist':joblist,'job': job_id,'job2':job2_id,'timer_names_non_json':timer_names, \
                 'avg':avgData,'min':minData,'max':maxData,'timer_names':json.dumps(timer_names),'radialmaxData':radialmaxData,'radialavgData':radialavgData,'radialminData':radialminData \
         ,'avg2':avgData2, 'min2': minData2, 'max2': maxData2, 'timer_names2': json.dumps(timer_names2), 'radialmaxData2': radialmaxData2, 'radialavgData2': radialavgData2, 'radialminData2': radialminData2 \
                  ,'simulated_time': round(u.getSimulatedTime(job_id),2), 'simulated_time2':u.getSimulatedTime(job2_id) \
                  ,'merge_timer_names':json.dumps([i[0] for i in mergeSet]),'merge_avg_data':[i[3] for i in mergeSet],'merge_avg_data2':[i[4] for i in mergeSet], \
                  'merge_max_data':[i[1] for i in mergeSet] ,'merge_max_data2':[i[2] for i in mergeSet], \
-                 'merge_min_data':[i[5] for i in mergeSet],'merge_min_data2':[i[6] for i in mergeSet]
+                 'merge_min_data':[i[5] for i in mergeSet],'merge_min_data2':[i[6] for i in mergeSet],'maxValue':maxValue
                  }
     )
 
 def timerdetailview(request, name):
+    job_id2 = request.GET.get('job2','')
     try:
         timer_id = timer.objects.get(timer_name=name)
         job_id = Job.objects.get(pk=request.GET.get('job',''))
+        if (job_id2):
+            job_id2 = Job.objects.get(pk=job_id2)
     except Job.DoesNotExist:
         raise Http404("Job does not exist")
     except timer.DoesNotExist:
         raise Http404("Timer does not exist")
 
-    timingset = timing.objects.all().select_related('timer').filter(job=job_id,timer=timer_id)
-    rank_timing_dictionary = {}
-    for timing_instance in timingset:
-        rank = timing_instance.i_mpi_rank
-        if rank in rank_timing_dictionary:
-            rank_timing_dictionary[rank].append(timing_instance.tsum)
-        else:
-            rank_timing_dictionary[rank] = [timing_instance.tsum]
-    data = []
-    labels = []
-    for rank in rank_timing_dictionary:
-        data.append(sum(rank_timing_dictionary[rank])/float(len(rank_timing_dictionary[rank])))
-        labels.append(rank)
-
+    labels,data = u.getRankAndTimings(timer_id,job_id)
+    labels2 = []
+    data2 = []
+    if (job_id2):
+        labels2,data2 = u.getRankAndTimings(timer_id,job_id2)
+    print(job_id2)
+    labels = list(set(labels+labels2))
     return render(
         request,
         'timer_detail.html',
-        context={'timer': timer_id,'job':job_id,'timings':data,'labels':labels}
+        context={'timer': timer_id,'job':job_id,'job2':job_id2,'timings':data,'labels':labels,'timings2':data2}
     )

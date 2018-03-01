@@ -1,0 +1,453 @@
+{% extends "base_generic.html" %}
+
+{% block content %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+<script src="/static/scripts/d3.v3.min.js"></script>
+<script src="/static/scripts/radialBarChart.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+     <div style="text-align:center;">
+         <button onclick="Merge()" id="MergeButton" class="centerbtn">Merge charts</button>
+     </div>
+ <div style="width:100%;">
+
+<div style="float:left; width:50%;">
+<div class="dropdown" style="display: inline-block">
+<button onclick="ToggleDropDown('DropdownJob')" class="dropbtn">{{ job.job_name }}<i class="fa fa-caret-down"></i></button>
+  <div id="DropdownJob" class="dropdown-content">
+          {% for jobi in joblist %}
+              {% if jobi != job %}
+                 <a href="/monitor/compare/?job1={{jobi.job_name}}&job2={{job2.job_name}}" > {{jobi.job_name}}</a>
+              {% endif %}
+        {% endfor %}
+  </div>
+</div>
+<br />
+
+  <h1>Job: {{ job.job_name }}</h1>
+    <p><strong>User:</strong> {{ job.user_name }}</p>
+    <p><strong>Repository:</strong> {{ job.repository }}</p>
+    <p><strong>Revision:</strong> {{ job.revision }}</p>
+    <p><strong>Branch:</strong> {{ job.branch }}</p>
+    <p><strong>Submitted:</strong>{{ job.submitted }}</p>
+    <p><strong>Start Date:</strong>{{ job.start_date }}</p>
+    <p><strong>Stop Date:</strong> {{ job.stop_date }}</p>
+    <p><strong>MPI Ranks:</strong> {{ job.n_mpi_ranks }}</p>
+    <p><strong>OMP Threads:</strong> {{ job.n_omp_threads }}</p>
+       <p><strong>Simulated Time:</strong> {{ simulated_time }} years/day</p>
+
+<div class="dropdown" >
+<button onclick="ToggleDropDown('myDropdown')" class="dropbtn" id="dropdown">Choose chart type <i class="fa fa-caret-down"></i></button>
+  <div id="myDropdown" class="dropdown-content">
+        <button onclick="changeBar('horizontalBar','myChart','chart',1)" class="button dropdownbutton">Horizontal bar</button>
+        <button onclick="changeBar('bar','myChart','chart',1)" class="button dropdownbutton">Vertical bar</button>
+      <!--<button onclick="changeBar('RadialBar','myChart','chart',1)" class="button dropdownbutton">Radial bar</button>-->
+       <button onclick="changeBar('pie','myChart','chart',1)" class="button dropdownbutton">Pie chart</button>
+  </div>
+</div>
+
+<br />
+         <canvas id="myChart" width="250" height="250"></canvas>
+     <div id="chart"></div>
+</div>
+
+
+<div style="float:right; width:50%; ">
+
+<div class="dropdown" style="display: inline-block">
+<button onclick="ToggleDropDown('DropdownJob2')" class="dropbtn">{{ job2.job_name }}<i class="fa fa-caret-down"></i></button>
+  <div id="DropdownJob2" class="dropdown-content">
+          {% for jobi in joblist %}
+              {% if jobi != job2 %}
+                 <a href="/monitor/compare/?job1={{job.job_name}}&job2={{jobi.job_name}}" > {{jobi.job_name}}</a>
+              {% endif %}
+        {% endfor %}
+  </div>
+</div>
+<br />
+
+  <h1>Job2: {{ job2.job_name }}</h1>
+    <p><strong>User:</strong> {{ job2.user_name }}</p>
+    <p><strong>Repository:</strong> {{ job2.repository }}</p>
+    <p><strong>Revision:</strong> {{ job2.revision }}</p>
+    <p><strong>Branch:</strong> {{ job2.branch }}</p>
+    <p><strong>Submitted:</strong>{{ job2.submitted }}</p>
+    <p><strong>Start Date:</strong>{{ job2.start_date }}</p>
+    <p><strong>Stop Date:</strong> {{ job2.stop_date }}</p>
+    <p><strong>MPI Ranks:</strong> {{ job2.n_mpi_ranks }}</p>
+    <p><strong>OMP Threads:</strong> {{ job2.n_omp_threads }}</p>
+        <p><strong>Simulated Time:</strong> {{ simulated_time2 }} years/day</p>
+        <div class="dropdown">
+        <button onclick="ToggleDropDown('myDropdown2')" class="dropbtn" id="dropdown2">Choose chart type <i class="fa fa-caret-down"></i></button>
+        <div id="myDropdown2" class="dropdown-content">
+        <button onclick="changeBar('horizontalBar','myChart2','chart2',2)" class="button dropdownbutton">Horizontal bar</button>
+        <button onclick="changeBar('bar','myChart2','chart2',2)" class="button dropdownbutton">Vertical bar</button>
+         <!--<button onclick="changeBar('RadialBar','myChart2','chart2',2)" class="button dropdownbutton">Radial bar</button>-->
+         <button onclick="changeBar('pie','myChart2','chart2',2)" class="button dropdownbutton">Pie chart</button>
+  </div>
+</div>
+<br />
+
+     <canvas id="myChart2" width="10" height="10"></canvas>
+     <div id="chart2"></div>
+</div>
+<canvas id="MergeChart" width="10" height="10"></canvas>
+</div>
+
+
+
+<script>
+var merged = false ;
+var radialBar = 'false';
+var canvas1 = document.getElementById("myChart") ;
+var canvas2 = document.getElementById("myChart2")  ;
+canvas1.onclick = function (evt) {
+    activePoints = myChart.getElementAtEvent(evt);
+    if (activePoints.length > 0 ) {
+        var chartData = activePoints[0]['_chart'].config.data;
+        var idx = activePoints[0]['_index'];
+        var label = chartData.labels[idx];
+        window.location.href = "/monitor/timer/" + label + "/?job=" +{{ job.job_name }};
+    }
+};
+canvas2.onclick = function (evt) {
+    activePoints = myChart2.getElementAtEvent(evt);
+    if (activePoints.length > 0 ) {
+        var chartData = activePoints[0]['_chart'].config.data;
+        var idx = activePoints[0]['_index'];
+        var label = chartData.labels[idx];
+        window.location.href = "/monitor/timer/" + label + "/?job=" +{{ job2.job_name }};
+    }
+};
+var merged_canvas = document.getElementById("MergeChart") ;
+merged_canvas.onclick = function (evt) {
+    console.log("clicked");
+    activePoints = MergeChart.getElementAtEvent(evt);
+    if (activePoints.length > 0 ) {
+        var chartData = activePoints[0]['_chart'].config.data;
+        var idx = activePoints[0]['_index'];
+        var label = chartData.labels[idx];
+        window.location.href = "/monitor/timer/" + label + "/?job=" +{{ job.job_name }} + "&job2=" + {{ job2.job_name }};
+    }
+};
+var ctx = document.getElementById("myChart").getContext('2d');
+var ctx2 = document.getElementById("myChart2").getContext('2d');
+var color = Chart.helpers.color;
+var MergeChart ;
+    var dataRadial = {{ radialmaxData|safe }} {{ radialavgData|safe }} {{ radialminData|safe }};
+        var dataRadial2 = {{ radialmaxData2|safe }} {{ radialavgData2|safe }} {{ radialminData2|safe }};
+        document.getElementById("MergeChart").hidden = true ;
+var data = {
+        labels: {{ timer_names|safe }},
+        datasets: [{
+            label: 'max',
+            data: {{ max }},
+            backgroundColor:"#8A0868",
+            borderColor:"#000000",
+            borderWidth: 1
+        }, {
+            label: 'avg',
+            data: {{ avg }},
+            backgroundColor:"#FF8000" ,
+            borderColor:"#000000" ,
+            borderWidth: 1
+        },{
+            label: 'min',
+            data: {{ min }},
+            backgroundColor: "#00ff00",
+            borderColor: "#000000",
+            borderWidth: 1
+        }]
+    };
+    var data2 = {
+        labels: {{ timer_names2|safe }},
+        datasets: [{
+            label: 'max2',
+            data: {{ max2 }},
+            backgroundColor:"#ffff00",
+            borderColor:"#000000",
+            borderWidth: 1
+        }, {
+            label: 'avg2',
+            data: {{ avg2 }},
+            backgroundColor:"#0000ff" ,
+            borderColor:"#000000" ,
+            borderWidth: 1
+        },{
+            label: 'min2',
+            data: {{ min2 }},
+            backgroundColor: "#ff0000",
+            borderColor: "#000000",
+            borderWidth: 1
+        }]
+    };
+
+var mergeData =  {
+        labels: {{ merge_timer_names|safe }},
+        datasets: [{
+            label: 'max',
+            data: {{ merge_max_data }},
+            backgroundColor:"#8A0868",
+            borderColor:"#000000",
+            borderWidth: 1
+        },{
+            label: 'max2',
+            data: {{ merge_max_data2 }},
+            backgroundColor:"#ffff00",
+            borderColor:"#000000",
+            borderWidth: 1
+        },
+            {
+            label: 'avg',
+            data: {{ merge_avg_data }},
+            backgroundColor:"#FF8000" ,
+            borderColor:"#000000" ,
+            borderWidth: 1
+        },{
+            label: 'avg2',
+            data: {{ merge_avg_data2 }},
+            backgroundColor:"#0000ff" ,
+            borderColor:"#000000" ,
+            borderWidth: 1
+        },{
+            label: 'min',
+            data: {{ merge_min_data }},
+            backgroundColor: "#00ff00",
+            borderColor: "#000000",
+            borderWidth: 1
+        },{
+            label: 'min2',
+            data: {{ merge_min_data2 }},
+            backgroundColor: "#ff0000",
+            borderColor: "#000000",
+            borderWidth: 1
+        }]
+    };
+var myChart = null ;
+var myChart2 = null ;
+    changeBar('horizontalBar','myChart2','chart2',2);
+    changeBar('horizontalBar','myChart','chart',1)
+
+function Swap(a,b){
+    var tmp = a ;
+    a = b ;
+    b = tmp ;
+}
+function isEqual (value, other) {
+
+	// Get the value type
+	var type = Object.prototype.toString.call(value);
+
+	// If the two objects are not the same type, return false
+	if (type !== Object.prototype.toString.call(other)) return false;
+
+	// If items are not an object or array, return false
+	if (['[object Array]', '[object Object]'].indexOf(type) < 0) return false;
+
+	// Compare the length of the length of the two items
+	var valueLen = type === '[object Array]' ? value.length : Object.keys(value).length;
+	var otherLen = type === '[object Array]' ? other.length : Object.keys(other).length;
+	if (valueLen !== otherLen) return false;
+
+	// Compare two items
+	var compare = function (item1, item2) {
+
+		// Get the object type
+		var itemType = Object.prototype.toString.call(item1);
+
+		// If an object or array, compare recursively
+		if (['[object Array]', '[object Object]'].indexOf(itemType) >= 0) {
+			if (!isEqual(item1, item2)) return false;
+		}
+
+		// Otherwise, do a simple comparison
+		else {
+
+			// If the two items are not the same type, return false
+			if (itemType !== Object.prototype.toString.call(item2)) return false;
+
+			// Else if it's a function, convert to a string and compare
+			// Otherwise, just compare
+			if (itemType === '[object Function]') {
+				if (item1.toString() !== item2.toString()) return false;
+			} else {
+				if (item1 !== item2) return false;
+			}
+
+		}
+	};
+
+	// Compare properties
+	if (type === '[object Array]') {
+		for (var i = 0; i < valueLen; i++) {
+			if (compare(value[i], other[i]) === false) return false;
+		}
+	} else {
+		for (var key in value) {
+			if (value.hasOwnProperty(key)) {
+				if (compare(value[key], other[key]) === false) return false;
+			}
+		}
+	}
+
+	// If nothing failed, return true
+	return true;
+
+};
+function Merge(){
+    if(!merged) {
+        myChart2.destroy() ;
+        myChart.destroy() ;
+        document.getElementById("myChart").hidden = true ;
+        document.getElementById("myChart2").hidden = true ;
+        document.getElementById("MergeChart").hidden = false ;
+        document.getElementById("dropdown").hidden=true ;
+        document.getElementById("dropdown2").hidden=true ;
+        document.getElementById("MergeButton").innerHTML = "Unmerge" ;
+
+
+        MergeChart = new Chart(merged_canvas.getContext('2d'),  {
+        type: 'horizontalBar',
+        data:mergeData ,
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }],
+                xAxes:[{ticks: {
+                            max: {{ maxValue }},
+                            beginAtZero: true
+                        }}]
+            }
+        }}) ;
+
+        merged = true ;
+    }
+    else
+    {
+    merged = false ;
+    MergeChart.destroy() ;
+     document.getElementById("MergeButton").innerHTML = "Merge" ;
+    document.getElementById("MergeChart").hidden = true ;
+    document.getElementById("myChart").hidden = false ;
+    document.getElementById("myChart2").hidden = false ;
+            document.getElementById("dropdown").hidden=false ;
+        document.getElementById("dropdown2").hidden=false ;
+    changeBar('horizontalBar','myChart2','chart2',2);
+    changeBar('horizontalBar','myChart','chart',1);
+    }
+}
+
+/* When the user clicks on the button,
+toggle between hiding and showing the dropdown content */
+function ToggleDropDown(dropdown) {
+    document.getElementById(dropdown).classList.toggle("show");
+}
+function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+function changeBar(chartType,chartcanvas,radialcanvas,ChartNumber) {
+        var canvas = document.getElementById(chartcanvas);
+        var radialChartCanvas = document.getElementById(radialcanvas) ;
+        var chartToChange ;
+
+
+        console.log(myChart2)
+        if (ChartNumber == 1){
+            if(myChart) myChart.destroy()
+        }
+        if (ChartNumber == 2){
+            if(myChart2)myChart2.destroy()
+        }
+
+    if (chartType=='horizontalBar' || chartType=='bar' || chartType=='pie'){
+        radialChartCanvas.hidden=false;
+        canvas.hidden=false;
+        radialBar=false ;
+
+        if (ChartNumber==1){
+        myChart = new Chart(canvas.getContext('2d'),  {
+        type: chartType,
+        data:data ,
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }],
+                xAxes:[{ticks: {
+                            max: {{ maxValue }},
+                            beginAtZero: true
+                        }}]
+            }
+        }
+    });}
+    if (ChartNumber==2){
+        myChart2 = new Chart(canvas.getContext('2d'),  {
+        type: chartType,
+        data:data2 ,
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero:true
+                    }
+                }],
+                xAxes:[{ticks: {
+                            max: {{ maxValue }},
+                            beginAtZero: true
+                        }}]
+            }
+        }
+    });}
+    }
+
+    if (chartType == 'RadialBar'){
+        radialBar=true;
+        canvas.hidden=true;
+                radialChartCanvas.hidden=false;
+
+    radial_Chart = radialBarChart()
+    .barHeight(250)
+    .domain([0,10])
+    .barColors(['yellow','blue'])
+     .tickValues([5,10,15])
+    .tickCircleValues([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]);
+
+    if (chartToChange == 1) {
+        d3.select('#chart')
+            .datum(dataRadial)
+            .call(radial_Chart);
+    }
+    if (chartToChange == 2) {
+        d3.select('#chart2')
+            .datum(dataRadial2)
+            .call(radial_Chart);
+    }
+    }
+}
+
+// Close the dropdown menu if the user clicks outside of it
+window.onclick = function(event) {
+  if (!event.target.matches('.dropbtn')) {
+    var dropdowns = document.getElementsByClassName("dropdown-content");
+    var i;
+    for (i = 0; i < dropdowns.length; i++) {
+      var openDropdown = dropdowns[i];
+      if (openDropdown.classList.contains('show')) {
+        openDropdown.classList.remove('show');
+      }
+    }
+  }
+}
+</script>
+
+{% endblock %}

@@ -1,15 +1,18 @@
 {% extends "base_generic.html" %}
 
 {% block content %}
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
-<script src="/static/scripts/d3.v3.min.js"></script>
-<script src="/static/scripts/radialBarChart.js"></script>
+    <script src="/static/scripts/BarChartHelper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
+    <script src="/static/scripts/d3.v3.min.js"></script>
+    <script src="/static/scripts/radialBarChart.js"></script>
     <script src="/static/scripts/HorizontalBarPlugin.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="/static/scripts/cookies.js"></script>
+    <script src="/static/scripts/chartjs-plugin-datalabels.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/static/scripts/multi.min.css">
+    <script src="/static/scripts/multi.min.js"></script>
 
-
-  <h1>Job: {{ job.job_name }}</h1>
+    <h1>Job: {{ job.job_name }}</h1>
     <p><strong>User:</strong> {{ job.user_name }}</p>
     <p><strong>Repository:</strong> {{ job.repository }}</p>
     <p><strong>Revision:</strong> {{ job.revision }}</p>
@@ -20,179 +23,404 @@
     <p><strong>MPI Ranks:</strong> {{ job.n_mpi_ranks }}</p>
     <p><strong>OMP Threads:</strong> {{ job.n_omp_threads }}</p>
     <p><strong>Simulated Time:</strong> {{ simulated_time }} years/day</p>
-<div class="dropdown" style="display: inline-block">
-<button onclick="ToggleDropDown('myDropdown')" class="dropbtn">Choose chart type <i class="fa fa-caret-down"></i></button>
-  <div id="myDropdown" class="dropdown-content">
-        <button onclick="changeBar('horizontalBar')" class="button dropdownbutton">Horizontal bar</button>
-        <button onclick="changeBar('bar')" class="button dropdownbutton">Vertical bar</button>
-        <button onclick="changeBar('RadialBar')" class="button dropdownbutton">Radial bar</button>
-        <button onclick="changeBar('pie')" class="button dropdownbutton">Pie chart</button>
-  </div>
-</div>
-    <button onclick="HideLabel('model_init')" class="button">Hide model Init</button>
-    <div class="dropdown" style="display: inline-block">
-<button onclick="ToggleDropDown('myDropdown2')" class="dropbtn">Compare with other job <i class="fa fa-caret-down"></i></button>
-  <div id="myDropdown2" class="dropdown-content">
-          {% for jobi in joblist %}
-              {% if jobi != job %}
-                 <a href="/monitor/compare/?job1={{job.job_name}}&job2={{jobi.job_name}}" > {{jobi.job_name}}</a>
-              {% endif %}
+    <select multiple id="timer_select">
+        {% for name in timer_names_non_json %}
+            <option value="{{ name }}">{{ name }}</option>
         {% endfor %}
-  </div>
-</div>
-     <canvas id="myChart" width="250" height="250"></canvas>
-     <div id="chart"></div>
+    </select>
+
+    <div class="dropdown" style="display: inline-block">
+        <button onclick="ToggleDropDown('myDropdown')" class="dropbtn">Choose chart type <i
+                class="fa fa-caret-down"></i></button>
+        <div id="myDropdown" class="dropdown-content">
+            <button onclick="changeBar('horizontalBar')" class="button dropdownbutton">Horizontal bar</button>
+            <button onclick="changeBar('bar')" class="button dropdownbutton">Vertical bar</button>
+            <button onclick="changeBar('RadialBar')" class="button dropdownbutton">Radial bar</button>
+            <button onclick="changeBar('pie')" class="button dropdownbutton">Pie chart</button>
+        </div>
+    </div>
+    <button onclick="saveJob('{{ job.job_name }}')" class="button button5" id="saveButton">Copy Job</button>
+    <button onclick="loadJobToCompare()" class="button button5" id="pasteButton">Compare with Job:</button>
+    <canvas id="myChart" width="250" height="250"></canvas>
+    <div id="chart"></div>
 
 
 
 
-<script>
-var chart = document.getElementById('chart');
-chart.onclick = function (evt) {
+    <script>
 
-};
-/* When the user clicks on the button,
-toggle between hiding and showing the dropdown content */
-function ToggleDropDown(dropdown) {
-    document.getElementById(dropdown).classList.toggle("show");
-}
-var radialBar = 'false';
-var ctx = document.getElementById("myChart").getContext('2d');
-var color = Chart.helpers.color;
-var data = {
-        labels: {{ timer_names|safe }},
-        datasets: [{
-            type:'line',
-            label: 'max',
-            data: {{ max }},
-            backgroundColor:'rgba(255,0,0, 0.2)',
-            borderColor:"#000000",
-            borderWidth: 1,
-                                          fill: false,
-                    showLine: false,
-        }, {
-            label: 'avg',
-            data: {{ avg }},
-            backgroundColor:'rgba(0,255,0, 0.2)' ,
-            borderColor:"#000000" ,
-            borderWidth: 1
-        },{
-            type:'line',
-            fill: false,
-            showLine: false,
-            label: 'min',
-            data: {{ min }},
-            backgroundColor: 'rgba(0,0,255, 0.2)',
-            borderColor: "#000000",
-            borderWidth: 1
-        }]
-    }
-  var myChart;
+        var pasteJobButton = document.getElementById('pasteButton');
+        pasteJobButton.innerText = pasteJobButton.innerText + "  " + getCookie('savedJob');
+        var select_element = document.getElementById('timer_select');
+        selectValues(select_element, 10);
+        multi(select_element);
+        select_element.onchange = function (ev) {
+            updateChart(myChart, this);
+        };
 
-changeBar('horizontalBar');
+        var chart = document.getElementById('chart');
+        chart.onclick = function (evt) {
 
-var canvas = document.getElementById('myChart');
-canvas.onclick = function (evt) {
-    activePoints = myChart.getElementAtEvent(evt);
-    if (activePoints.length > 0 ) {
-        var chartData = activePoints[0]['_chart'].config.data;
-        var idx = activePoints[0]['_index'];
-        var label = chartData.labels[idx];
-        window.location.href = "/monitor/timer/" + label + "/?job=" +{{ job.job_name }};
-    }
-};
+        };
 
 
-function HideLabel(name){
-    console.log(myChart)
-    myChart.config.data.labels[0].hidden = true
-    myChart.update()
-}
+        function updateChart(chart, select) {
+            //delete all non selected values
+            values = getUnselectedValues(select);
+            for (var i = 0; i < values.length; i++) {
+                value = values[i];
+                console.log(value);
+                labels = chart.config.data.labels.concat();
+                index = -1;
+                for (var j = 0; j < labels.length; j++) {
+                    if (labels[j] == value) {
+                        index = j;
+                        indexToRemove = labels.indexOf(labels[j]);
+                        if (indexToRemove > -1) {
+                            labels.splice(indexToRemove, 1);
+                        }
 
-
-/* When the user clicks on the button,
-toggle between hiding and showing the dropdown content */
-function myFunction() {
-    document.getElementById("myDropdown").classList.toggle("show");
-}
-
-Array.prototype.max = function() {
-  return Math.max.apply(null, this);
-};
-
-function changeBar(chartType) {
-        var canvas = document.getElementById("myChart") ;
-        var radialChartCanvas = document.getElementById("chart") ;
-        if(myChart){
-            myChart.destroy() ;
-        }
-        d3.select('#chart').selectAll('svg').remove();
-
-
-    if (chartType=='horizontalBar' || chartType=='bar' || chartType=='pie'){
-        radialChartCanvas.hidden=false;
-        canvas.hidden=false;
-        radialBar=false ;
-
-        if (chartType == 'pie'){
-             myChart = new Chart(ctx,  {
-        type: chartType,
-        data:{
-
-        labels: {{ timer_names|safe }},
-        datasets: [{
-            label: 'avg',
-            data: {{ avg }},
-            backgroundColor:"#562A72" ,
-            borderColor:"#000000" ,
-            borderWidth: 1
-        }]
-        },
-        options: {
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        beginAtZero:true
+                        chart.config.data.labels = labels;
                     }
-                }],
-                xAxes:[]
+                }
+                for (var j = 0; j < chart.config.data.datasets.length; j++) {
+                    new_data = chart.config.data.datasets[j].data.concat();
+                    if (index > -1) {
+                        new_data.splice(index, 1);
+                    }
+                    chart.config.data.datasets[j].data = new_data;
+                }
+                chart.update();
+            }
+            //Check if all selected Values are in the chart.
+            values = getSelectedValues(select);
+            for (var i = 0; i < values.length; i++) {
+                value = values[i];
+                labels = chart.config.data.labels.concat();
+                index = -1;
+                isIn = false;
+                for (var j = 0; j < labels.length; j++) {
+                    if (labels[j] == value) {
+                        isIn = true;
+                    }
+                }
+
+                if (!isIn) {
+                    chart.config.data.labels.push(value);
+                    for (var j = 0; j < chart.config.data.datasets.length; j++) {
+
+                        new_data = chart.config.data.datasets[j].data.concat();
+
+                        index = timer_names.indexOf(value);
+                        switch (j) {
+                            case 0:
+                                new_data.push(avg_data[index]);
+                                break;
+                            case 1:
+                                new_data.push(max_data[index]);
+                                break;
+                            case 2:
+                                new_data.push(min_data[index]);
+                                break;
+
+                        }
+                        chart.config.data.datasets[j].data = new_data;
+
+                    }
+                }
+                chart.update();
             }
         }
-        });
-        }else{myChart = new Chart(ctx,  {
-        type: chartType,
-        data:data ,
-        options: {
-            lineAtIndex:200 ,
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        beginAtZero:true
+
+        // Return an array of the selected opion values
+        // select is an HTML select element
+        function getUnselectedValues(select) {
+            var result = [];
+            var options = select && select.options;
+            var opt;
+
+            for (var i = 0, iLen = options.length; i < iLen; i++) {
+                opt = options[i];
+
+                if (!opt.selected) {
+                    result.push(opt.value || opt.text);
+                }
+            }
+            return result;
+        }
+
+
+        // Return an array of the selected opion values
+        // select is an HTML select element
+        function getSelectedValues(select) {
+            var result = [];
+            var options = select && select.options;
+            var opt;
+            for (var i = 0, iLen = options.length; i < iLen; i++) {
+                opt = options[i];
+
+                if (opt.selected) {
+                    result.push(opt.value || opt.text);
+                }
+            }
+            return result;
+        }
+
+
+        /*
+        Selects the first n values of a select
+        */
+        function selectValues(select, n) {
+            var result = [];
+            var options = select && select.options;
+            var opt;
+            for (var i = 0, iLen = options.length; i < iLen && i < n; i++) {
+                opt = options[i];
+                opt.selected = "selected";
+            }
+
+        }
+
+
+        /* When the user clicks on the button,
+        toggle between hiding and showing the dropdown content */
+        function ToggleDropDown(dropdown) {
+            document.getElementById(dropdown).classList.toggle("show");
+        }
+
+        function loadJobToCompare() {
+            window.location = "/monitor/compare/?job1={{job.job_name}}&job2=" + getCookie("savedJob");
+        }
+
+        function saveJob(job) {
+            setCookie("savedJob", job, 10);
+            var saveButton = document.getElementById('saveButton');
+            pasteJobButton.innerText = "Compare with Job: " + getCookie('savedJob');
+            saveButton.onclick = null;
+            alert(job + " saved to clipboard");
+        }
+
+        var radialBar = 'false';
+        var ctx = document.getElementById("myChart").getContext('2d');
+        var color = Chart.helpers.color;
+        var max_data = {{ max }};
+        var avg_data = {{ avg }};
+        var min_data = {{ min }};
+        var timer_names = {{ timer_names|safe }};
+        console.log(timer_names);
+        var data = {
+            labels: timer_names,
+            datasets: [{
+                label: 'avg',
+                data: avg_data.concat(),
+                backgroundColor: 'rgba(255,0,0, 0.5)',
+                borderColor: "#000000",
+                borderWidth: 1
+            }, {
+                label: 'max',
+                data: max_data.concat(),
+                backgroundColor: 'rgba(255,255,255, 0.0)',
+                borderColor: "#000000",
+                borderWidth: 1,
+                datalabels: {
+                    align: 'top',
+                    anchor: 'end'
+                }
+            }, {
+                label: 'min',
+                data: min_data.concat(),
+                backgroundColor: 'rgba(255,255,255, 0.0)',
+                borderColor: "#000000",
+                borderWidth: 1,
+                datalabels: {
+                    align: 'bottom',
+                    anchor: 'end'
+                }
+            }]
+        }
+        var myChart;
+
+        changeBar('horizontalBar');
+
+        var canvas = document.getElementById('myChart');
+        canvas.onclick = function (evt) {
+            activePoints = myChart.getElementAtEvent(evt);
+            if (activePoints.length > 0) {
+                var chartData = activePoints[0]['_chart'].config.data;
+                var idx = activePoints[0]['_index'];
+                var label = chartData.labels[idx];
+                window.location.href = "/monitor/timer/" + label + "/?job=" +{{ job.job_name }};
+            }
+        };
+
+
+        function HideLabel(name) {
+            myChart.config.data.labels[0].hidden = true
+            myChart.update()
+        }
+
+
+        /* When the user clicks on the button,
+        toggle between hiding and showing the dropdown content */
+        function myFunction() {
+            document.getElementById("myDropdown").classList.toggle("show");
+        }
+
+        Array.prototype.max = function () {
+            return Math.max.apply(null, this);
+        };
+
+        function changeBar(chartType) {
+            var canvas = document.getElementById("myChart");
+            var radialChartCanvas = document.getElementById("chart");
+            if (myChart) {
+                myChart.destroy();
+            }
+            d3.select('#chart').selectAll('svg').remove();
+
+
+            if (chartType == 'horizontalBar' || chartType == 'bar' || chartType == 'pie') {
+                radialChartCanvas.hidden = false;
+                canvas.hidden = false;
+                radialBar = false;
+
+                if (chartType == 'pie') {
+                    myChart = new Chart(ctx, {
+                        type: chartType,
+                        data: {
+
+                            labels: timer_names,
+                            datasets: [{
+                                label: 'avg',
+                                data: avg_data,
+                                backgroundColor: "#0fafda",
+                                borderColor: "#000000",
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {plugins: {
+                                    datalabels: {
+                                        color: 'black',
+                                        display: function (context) {
+                                            return 1;
+                                        },
+                                        offset: 5,
+                                        font: {
+                                            weight: 'bold'
+                                        },
+                                        formatter: function (value, context) {
+                                                    return context.chart.config.data.labels[context.dataIndex];
+
+                                        }
+                                    }
+                                },
+                                     legend: {
+                                display: false
+                            },
+                            scales: {
+                                yAxes: [{
+
+                                    ticks: {
+                                        beginAtZero: true
+                                    }
+                                }],
+                                xAxes: []
+                            }
+                        }
+                    });
+
+                } else {
+                    if (chartType == 'horizontalBar'){
+                        myChart = new Chart(ctx, {
+                            type: chartType,
+                            data: data,
+                            options: {
+                                plugins: {
+                                    datalabels: {
+                                        color: 'black',
+                                        display: function (context) {
+                                            return 1;
+                                        },
+                                        offset: 5,
+                                        font: {
+                                            weight: 'bold'
+                                        },
+                                        formatter: function (value, context) {
+                                            returnValue = context.dataset.label;
+                                            if (returnValue == 'max' || returnValue == 'min') {
+                                                return context.dataset.label;
+                                            } else return '';
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    yAxes: [{
+                                        stacked: true,
+                                        barThickness : 73,
+                                        ticks: {
+                                            beginAtZero: true
+                                        }
+                                    }],
+                                    xAxes: [{stacked: false}]
+                                }
+                            }
+                        });
+                }else{
+                        myChart = new Chart(ctx, {
+                            type: chartType,
+                            data: data,
+                            options: {
+                                plugins: {
+                                    datalabels: {
+                                        color: 'black',
+                                        display: function (context) {
+                                            return 1;
+                                        },
+                                        offset: 5,
+                                        font: {
+                                            weight: 'bold'
+                                        },
+                                        formatter: function (value, context) {
+                                            returnValue = context.dataset.label;
+                                            if (returnValue == 'max' || returnValue == 'min') {
+                                                return context.dataset.label;
+                                            } else return '';
+                                        }
+                                    }
+                                },
+                                scales: {
+                                    yAxes: [{
+                                        stacked: false,
+                                        ticks: {
+                                            beginAtZero: true
+                                        }
+                                    }],
+                                    xAxes: [{min:0,stacked: true,barThickness : 73}]
+                                }
+                            }
+                        });
                     }
-                }],
-                xAxes:[]
+                }
+
+            }
+
+         updateChart(myChart,document.getElementById('timer_select'));
+        }
+
+        // Close the dropdown menu if the user clicks outside of it
+        window.onclick = function (event) {
+            if (!event.target.matches('.dropbtn')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                var i;
+                for (i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
             }
         }
-        });
-        }
 
-    }
-
-
-}
-
-// Close the dropdown menu if the user clicks outside of it
-window.onclick = function(event) {
-  if (!event.target.matches('.dropbtn')) {
-    var dropdowns = document.getElementsByClassName("dropdown-content");
-    var i;
-    for (i = 0; i < dropdowns.length; i++) {
-      var openDropdown = dropdowns[i];
-      if (openDropdown.classList.contains('show')) {
-        openDropdown.classList.remove('show');
-      }
-    }
-  }
-}
-</script>
+        updateChart(myChart, select_element);
+    </script>
 {% endblock %}

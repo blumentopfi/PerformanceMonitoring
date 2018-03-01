@@ -6,8 +6,6 @@
           var chart = this.chart;
           var ctx = chart.chart.ctx;
           var index = chart.config.options.lineAtIndex;
-           console.log(chart);
-
           if (index) {
 
               var xaxis = chart.scales['x-axis-0'];

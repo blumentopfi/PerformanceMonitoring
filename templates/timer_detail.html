@@ -5,6 +5,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.1/Chart.min.js"></script>
 <script src="/static/scripts/d3.v3.min.js"></script>
 <script src="/static/scripts/radialBarChart.js"></script>
+    <script src="/static/scripts/chartjs-plugin-zoom.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
      <canvas id="myChart" width="1000" height="600"></canvas>
 <script>
@@ -12,10 +13,17 @@ var ctx = document.getElementById("myChart").getContext('2d');
 var data = {
         labels: {{ labels|safe }},
         datasets: [{
-            label: 'Timing',
+            label: "{{ job.job_name }}",
             data: {{ timings }},
-            backgroundColor:"#0000ff",
-            borderColor:"#0000ff",
+            backgroundColor:"#B3A05E",
+            borderColor:"#B3A05E",
+            borderWidth: 1,
+            fill:false
+        },{
+            label: "{{ job2.job_name }}",
+            data: {{ timings2 }},
+            backgroundColor:"#51487B",
+            borderColor:"#51487B",
             borderWidth: 1,
             fill:false
         }]
@@ -36,7 +44,24 @@ var config = {
                 hover: {
                     mode: 'nearest',
                     intersect: true
-                },
+                },        pan: {
+            // Boolean to enable panning
+            enabled: true,
+
+            // Panning directions. Remove the appropriate direction to disable
+            // Eg. 'y' would only allow panning in the y direction
+            mode: 'xy'
+        },
+
+        // Container for zoom options
+        zoom: {
+            // Boolean to enable zooming
+            enabled: true,
+
+            // Zooming directions. Remove the appropriate direction to disable
+            // Eg. 'y' would only allow zooming in the y direction
+            mode: 'xy',
+        },
                 scales: {
                     xAxes: [{
                         display: true,
